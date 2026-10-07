@@ -1,0 +1,158 @@
+rules_version = '2';
+
+// Milevana Foundation rules (draft for the G3 spike).
+// Everything is denied by default and opened only as below.
+// Decisions applied: docs/requirements.md "Decisions on open questions".
+//  - Foundation ships default-deny for invites, self-join, leave, remove and
+//    ownership transfer (tab 6 adds the real rules).
+//  - Timestamps must not be in the future (not equal to request.time), so merged
+//    and restored copies keep their original dates.
+//  - createdBy and updatedBy must equal the caller.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function vehiclePath(vid) {
+      return /databases/$(database)/documents/vehicles/$(vid);
+    }
+
+    function notInFuture(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // ---------- users ----------
+    match /users/{userId} {
+      allow read, create, update, delete: if signedIn() && uid() == userId;
+    }
+
+    // ---------- vehicles ----------
+    function validVehicle(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.type in ['car', 'bike', 'scooter', 'truck', 'bus', 'other']
+        && d.odometerUnit in ['km', 'mi', 'hours']
+        && d.currency is string && d.currency.size() == 3
+        && d.fuelTypes is list && d.fuelTypes.size() <= 5
+        && d.archived is bool
+        && d.lastOdometer is number && d.lastOdometer >= 0
+        && d.schemaVersion is int
+        && notInFuture(d.createdAt) && notInFuture(d.updatedAt);
+    }
+
+    // Foundation: the owner may not change ownership or membership at all.
+    function ownerKeepsMembership() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['ownerId', 'memberIds', 'members']);
+    }
+
+    // Members may update only lastOdometer, lastOdometerAt and updatedAt.
+    function memberOdometerUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lastOdometer', 'lastOdometerAt', 'updatedAt'])
+        && request.resource.data.lastOdometer is number
+        && request.resource.data.lastOdometer >= 0
+        && notInFuture(request.resource.data.updatedAt);
+    }
+
+    match /vehicles/{vid} {
+      allow read: if signedIn() && uid() in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.memberIds == [uid()]
+        && request.resource.data.members.keys().hasOnly([uid()])
+        && validVehicle(request.resource.data);
+
+      allow update: if signedIn() && (
+        (resource.data.ownerId == uid()
+          && ownerKeepsMembership()
+          && validVehicle(request.resource.data))
+        || (uid() in resource.data.memberIds && memberOdometerUpdate())
+      );
+
+      allow delete: if signedIn() && resource.data.ownerId == uid();
+
+      // ---------- entries ----------
+      function amountOk(d, vehicleCurrency) {
+        return d.type in ['fuel', 'expense', 'service', 'income']
+          ? (d.amount.minor is int && d.amount.minor >= 0
+              && d.amount.currency == vehicleCurrency)
+          : !('amount' in d);
+      }
+
+      function validEntry(d, vehicleCurrency) {
+        return d.type in ['fuel', 'expense', 'service', 'income', 'trip', 'inspection']
+          && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
+          && d.date is timestamp
+          && d.schemaVersion is int
+          && d.attachments is list && d.attachments.size() <= 5
+          && amountOk(d, vehicleCurrency);
+      }
+
+      match /entries/{eid} {
+        allow read: if signedIn() && uid() in get(vehiclePath(vid)).data.memberIds;
+
+        allow create: if signedIn() && (
+          get(vehiclePath(vid)).data.memberIds.hasAny([uid()])
+          && request.resource.data.createdBy == uid()
+          && request.resource.data.updatedBy == uid()
+          && validEntry(request.resource.data, get(vehiclePath(vid)).data.currency)
+        );
+
+        allow update: if signedIn() && (
+          get(vehiclePath(vid)).data.memberIds.hasAny([uid()])
+          && (resource.data.createdBy == uid()
+              || get(vehiclePath(vid)).data.ownerId == uid())
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedBy == uid()
+          && validEntry(request.resource.data, get(vehiclePath(vid)).data.currency)
+        );
+
+        allow delete: if signedIn() && (
+          get(vehiclePath(vid)).data.memberIds.hasAny([uid()])
+          && (resource.data.createdBy == uid()
+              || get(vehiclePath(vid)).data.ownerId == uid())
+        );
+      }
+
+      // ---------- reminders ----------
+      match /reminders/{rid} {
+        allow read, create, update, delete: if signedIn()
+          && uid() in get(vehiclePath(vid)).data.memberIds;
+      }
+
+      // ---------- checklist templates ----------
+      match /checklistTemplates/{tid} {
+        allow read: if signedIn() && uid() in get(vehiclePath(vid)).data.memberIds;
+
+        allow create: if signedIn()
+          && uid() in get(vehiclePath(vid)).data.memberIds
+          && request.resource.data.createdBy == uid()
+          && request.resource.data.items is list
+          && request.resource.data.items.size() <= 50;
+
+        allow update: if signedIn()
+          && uid() in get(vehiclePath(vid)).data.memberIds
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.items is list
+          && request.resource.data.items.size() <= 50;
+
+        allow delete: if signedIn()
+          && uid() in get(vehiclePath(vid)).data.memberIds
+          && (resource.data.createdBy == uid()
+              || get(vehiclePath(vid)).data.ownerId == uid());
+      }
+    }
+
+    // ---------- invites: denied in Foundation, defined in tab 6 ----------
+    match /invites/{code} {
+      allow read, write: if false;
+    }
+  }
+}

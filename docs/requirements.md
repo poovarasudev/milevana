@@ -174,7 +174,7 @@ invites/{code}                                          tab 6
 
 **Fuel details** (the only detail shape Foundation fixes, because mileage depends on it): `fuelType`, `quantity`, `quantityUnit` (L, gal_us, gal_uk, kg, kWh), `pricePerUnitMilli` (price per unit as an integer in thousandths of a minor unit), `fullTank`, `missedPrevious`. Tab 2 adds optional fuel fields and defines the other entry shapes.
 
-**Service entries** (decided for tab 2; the field shape is in "Proposed schemas"): one `service` entry per garage visit, with line items. Each line has a service type and its cost; the entry total is the sum of the lines, plus optional labour and discount. This matches how the bill is actually paid, keeps one receipt photo per bill, and the History list shows one row per garage visit. Reminders (tab 3) can still trigger per service type, for example "oil change every 10,000 km", by looking inside the line items. Each service entry also has one entry category from the Services list, and up to 5 attachments.
+**Service entries** (decided for tab 2; the field shape is in "Schemas"): one `service` entry per garage visit, with line items. Each line has a service type and its cost; the entry total is the sum of the lines, plus optional labour and discount. This matches how the bill is actually paid, keeps one receipt photo per bill, and the History list shows one row per garage visit. Reminders (tab 3) can still trigger per service type, for example "oil change every 10,000 km", by looking inside the line items. Each service entry also has one entry category from the Services list, and up to 5 attachments.
 
 **Left out (YAGNI):** soft delete and edit history, a custom-category collection (fixed list plus free-text "Other"), server-computed totals, and vehicle photos.
 
@@ -323,7 +323,7 @@ Security rules and domain logic get the deepest coverage, because rules are the 
 
 ## Logging: decisions for tab 2
 
-These are product decisions for sub-project 2. The field shapes are in "Proposed schemas" and are approved before tab 2 starts.
+These are product decisions for sub-project 2. The field shapes are in "Schemas" (approved on 2026-10-06).
 
 **Fuel entries**
 
@@ -366,7 +366,7 @@ These are product decisions for sub-project 2. The field shapes are in "Proposed
 
 ## Reminders: decisions for tab 3
 
-These are product decisions for sub-project 3. The reminder schema is in "Proposed schemas" and is approved before tab 3 starts.
+These are product decisions for sub-project 3. The reminder schema is in "Schemas" (approved on 2026-10-06).
 
 **Who is notified and muting**
 
@@ -625,9 +625,9 @@ These decisions close the open questions raised while completing this document. 
 
 ### Foundation
 
-- **OQ-01, Tab designs:** The tab designs are the decisions recorded in this document's tab sections. Field-level shapes are in "Proposed schemas" and need approval before each tab starts.
+- **OQ-01, Tab designs:** The tab designs are the decisions recorded in this document's tab sections. Field-level shapes are in "Schemas" (approved on 2026-10-06).
 - **OQ-02, Success metrics:** No numeric v1 targets. The tracked signals are completion of the closed-test gate, the weekly Firestore usage check, and crash reports.
-- **OQ-03, Firebase project id:** The Firebase project id is `milevana` (fallback address `milevana.web.app`). It is permanent once created. If the id is taken when the project is created, the id actually created is recorded here.
+- **OQ-03, Firebase project id:** The Firebase project id is `milevana` (fallback address `milevana.web.app`). It is permanent. The project was created with this id and confirmed on 2026-10-06.
 - **OQ-04, Foundation rules scope:** Foundation writes the `checklistTemplates` rules and ships default-deny for `invites`, self-join, leave and ownership transfer, tested as denied. AC-F6 is amended to say so. Tab 6 adds the real invite rules.
 - **OQ-05, Link prompt:** The "5th entry" counts entries across all vehicles. A dismissed prompt does not reappear. The "Your data isn't backed up" banner on More stays.
 - **OQ-06, Cancel and Switch without moving:** Cancel keeps the user anonymous with nothing changed. Switch without moving signs in to the Google account and leaves the phone's data behind, after a warning that it cannot be recovered.
@@ -642,7 +642,7 @@ These decisions close the open questions raised while completing this document. 
 - **OQ-18, Capacity and billing:** Budget for roughly 100 to 500 daily active users on the free plan, with no Blaze fallback. Reads are cache-first wherever possible, and a refresh control pulls the latest data from the cloud. If the daily quota is reached, sync pauses until the reset.
 - **OQ-20, Web feature parity:** Backup and restore, reminders, reports, checklists, sharing and attachments (online only) work on web. Automatic backup is Android only.
 - **OQ-21, Web narrow layout:** Web below 768 px uses the mobile layout.
-- **OQ-22, Merge and restore versus rules:** Copies keep their original `date`, `createdAt` and `updatedAt`. `createdBy` and `updatedBy` are rewritten to the new owner's uid, and `createdByName` is kept. Rules check that timestamps are not in the future instead of equal to `request.time`. Restored entries by other members on a shared vehicle the user owns are attributed to the user. Vehicles are written before their entries. Verification pending: gate G3.
+- **OQ-22, Merge and restore versus rules:** Copies keep their original `date`, `createdAt` and `updatedAt`. `createdBy` and `updatedBy` are rewritten to the new owner's uid, and `createdByName` is kept. Rules check that timestamps are not in the future instead of equal to `request.time`. Restored entries by other members on a shared vehicle the user owns are attributed to the user. Vehicles are written before their entries. Emulator-verified on 2026-10-06 (gate G3); production confirmation pending.
 - **OQ-23, Merge resume:** On launch, if merge retry data exists, the app shows "Finish moving your data".
 - **OQ-24, Sign-out with pending writes:** If writes are pending, sign-out shows how many changes have not synced and offers Wait and sync, or Sign out and discard. Sign-out also clears scheduled notifications, the saved selected vehicle, any merge retry data, and the Google Sign-In session.
 - **OQ-25, Same uid on Android and web:** Documented as an assumption: linking Google to the anonymous uid keeps the uid, so web sees the same vehicles. A user who signs in on web first and later links on Android goes through the merge path.
@@ -653,7 +653,7 @@ These decisions close the open questions raised while completing this document. 
 - **OQ-32, Entry `date`:** `date` is a timestamp of the chosen local date and time. The financial year (April to March) uses the device time zone.
 - **OQ-33, Rules limits and abuse:** Rules cap what they can: text lengths, array sizes (5 attachments, 10 members, 50 template items) and document shape. Total document counts cannot be limited by rules. App Check is not in v1, and abuse resistance beyond field limits is an accepted limitation.
 - **OQ-34, Rules invariants:** The owner must be in `memberIds`. The `members` keys match `memberIds`. `ownerId` changes only to an existing member. `createdBy` and `updatedBy` must equal the caller.
-- **OQ-35, Batch size:** 500 is the target batch size. The emulator spike (gate G3) sets the real constant against the rules access-call limits.
+- **OQ-35, Batch size:** 500 is the batch size. The emulator spike (gate G3, 2026-10-06) found a batch of 500 entries passes when the rules read only the parent vehicle document, because repeated reads of the same document count once, while a single write reading 11 distinct documents, and a batch of 30 writes each reading a different document, are denied. Rules must therefore read only the parent vehicle. Production confirmation is pending.
 - **OQ-36, Crash report contents:** Invite paths are redacted from crash reports and the uid is not set as the Crashlytics user id. The privacy policy discloses the Crashlytics installation id.
 - **OQ-37, Testing gaps:** Add an emulator integration test for the merge write path. Link Google stays manual with a test Google account. Native offline behaviour is covered by the Maestro airplane-mode flow plus manual checks.
 - **OQ-38, CI/CD gaps:** One production Firebase project, with the emulator for tests. Rules and indexes deploy on tagged releases. Secrets live in GitHub and EAS secrets. EAS Submit publishes to Play, and Hosting deploys from CI.
@@ -663,7 +663,7 @@ These decisions close the open questions raised while completing this document. 
 ### Logging
 
 - **OQ-30, Fuel details shape:** `quantityUnit` is L, gal_us, gal_uk, kg or kWh. Price per unit is stored as an integer in thousandths of a minor unit (`pricePerUnitMilli`). The total stays in integer minor units, so the "any two of three" input round-trips.
-- **OQ-41, Service entries:** Up to 5 attachments per entry is decided. Each service entry also has one entry category from the Services list (see OQ-43). `attachments[].itemId` is used for inspection item tags only. The line, labour, discount and stored-total shapes are in "Proposed schemas" and need approval.
+- **OQ-41, Service entries:** Up to 5 attachments per entry is decided. Each service entry also has one entry category from the Services list (see OQ-43). `attachments[].itemId` is used for inspection item tags only. The line, labour, discount and stored-total shapes are in "Schemas" (approved on 2026-10-06).
 - **OQ-42, Units in Logging:** CNG shows km/kg and EV shows km/kWh (mi/kg and mi/kWh for mile-based vehicles), fixed per fuel unit and not user-selectable. Petrol and diesel follow the Efficiency format setting. The trip reimbursement rate is per the vehicle's odometer unit (per km, per mi). A trip has no `amount`, and its reimbursement is computed in `details`.
 - **OQ-43, Service types and category:** The Services list is the service type of each line item (plus "Other" with free text). Each service entry also picks one entry category from the same list.
 - **OQ-44, Reimbursement:** Trip-calculated reimbursement is shown only in the Trips section and is excluded from cost and from net profit. An income entry categorised "reimbursement" is ordinary income and counts toward profit.
@@ -710,9 +710,9 @@ These decisions close the open questions raised while completing this document. 
 - **OQ-62, Account deletion:** For each shared vehicle the user owns, the summary pre-selects the longest-standing member as the new owner. The user can pick another member or delete that vehicle instead, and the new owner needs no acceptance. Entries logged on vehicles the user leaves keep the user's name. Progress is stored on `users/{uid}`. Data is deleted first and the Firebase account last, and resuming needs a fresh re-sign-in. Anonymous users can delete in-app only. The policy states that entries logged on others' vehicles keep the user's name. `clearPersistence()` runs after deletion.
 - **OQ-63, Play and policy declarations:** Declare crash logs and the Crashlytics installation id, state that receipts live in the user's Drive, and mention members' emails and the camera permission. Verification pending: what Play requires.
 
-## Proposed schemas (for approval)
+## Schemas (approved 2026-10-06)
 
-**Status: proposed, needs approval.** These field-level shapes were drafted on 2026-10-06 to complete the tab designs. They follow the product decisions recorded in this document, but the field names and details below are proposals, not decisions. Each tab's shapes should be approved before that tab starts. Where a shape needs a decision that was not made, it says so.
+**Status: approved on 2026-10-06.** These field-level shapes were drafted on 2026-10-06 to complete the tab designs, and the product owner approved them the same day. They follow the product decisions recorded in this document. Changes after approval should be recorded as new decisions.
 
 ### Entry additions
 
@@ -744,7 +744,7 @@ The user enters any two of price per unit, quantity and total, and the app calcu
 | `labourMinor` | Optional integer in minor units |
 | `discountMinor` | Optional integer in minor units. A fixed amount, not a percentage. |
 
-The entry `amount.minor` is the stored total: the sum of the line costs, plus labour, minus discount, never below zero. The entry also has one `category` from the Services list, and up to 5 attachments. Decision needed: whether a discount may also be a percentage.
+The entry `amount.minor` is the stored total: the sum of the line costs, plus labour, minus discount, never below zero. The entry also has one `category` from the Services list, and up to 5 attachments. The discount is a fixed amount, not a percentage (approved).
 
 ### Trip details (`details` on a `trip` entry)
 
@@ -800,7 +800,7 @@ Common columns: date, vehicle, type, category, amount, currency, odometer, notes
 
 Amounts are plain decimals with the currency in its own column. The file is UTF-8 with a byte-order mark.
 
-### Rules additions (proposed)
+### Rules additions (approved)
 
 - Timestamps must not be in the future.
 - `createdBy` and `updatedBy` equal the caller.
@@ -818,7 +818,7 @@ No setup choice remains open before implementation starts (the Firebase project 
 - [x] App name: **Milevana**.
 - [x] Android package id: `dev.poovarasu.milevana`. It cannot change after the first Play Store release.
 - [x] Web address: `milevana.poovarasu.dev`, pointed at Firebase Hosting. Invite links (sub-project 6) and the Google consent screen (sub-project 8) use it.
-- [x] Firebase project id: `milevana`. Permanent once created; it also forms the fallback `milevana.web.app` address. If the id is taken when the project is created, the id actually created is recorded here.
+- [x] Firebase project id: `milevana`. Permanent once created; it also forms the fallback `milevana.web.app` address. The project was created with this id and confirmed on 2026-10-06.
 
 **Accepted limitations**
 

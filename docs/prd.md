@@ -6,7 +6,7 @@
 | **Release covered** | Milevana v1: a complete public release on Android, with a companion web app |
 | **Author** | Poovarasu Sekar |
 | **PRD date** | 2026-10-06 |
-| **Status** | Draft. Revised after red-team review (Appendix D). All open questions decided on 2026-10-06; proposed schemas await approval (Appendix E). |
+| **Status** | Draft. Revised after red-team review (Appendix D). All open questions decided and the schemas approved on 2026-10-06 (Appendix E). |
 | **Stakeholders** | Not named in the source |
 | **Authoritative source** | `docs/requirements.md` ("Milevana v1 — Brief & Foundation Design Spec", Oct 5, 2026, @Poovarasu Sekar; updated 2026-10-06 with the service-entry decision) |
 
@@ -33,7 +33,7 @@
 
 **Priority.** The source assigns no priorities. Every item in the v1 scope list is committed v1 scope, and every "Not in v1" item is excluded. The P0/P1/P2 split from the standard PRD template is not applied, because it would be invented. Success metrics are likewise not defined in the source (OQ-02).
 
-**Review status.** This revision incorporates a red-team review of the PRD against the source. The review changed no source requirement and resolved no ambiguity. It (a) corrected places where inference was presented as source, (b) added open questions OQ-22 to OQ-40, (c) added feasibility concerns to verify (§15.9), testing and release gaps (§21.5, §22.5), and a pre-implementation gate list (§24.6). Appendix D maps every finding to its PRD change. On 2026-10-06 every open question was then decided (§27), the decisions were folded into the requirements, and field-level schemas were proposed (Appendix E).
+**Review status.** This revision incorporates a red-team review of the PRD against the source. The review changed no source requirement and resolved no ambiguity. It (a) corrected places where inference was presented as source, (b) added open questions OQ-22 to OQ-40, (c) added feasibility concerns to verify (§15.9), testing and release gaps (§21.5, §22.5), and a pre-implementation gate list (§24.6). Appendix D maps every finding to its PRD change. On 2026-10-06 every open question was then decided (§27), the decisions were folded into the requirements, and field-level schemas were proposed and then approved (Appendix E).
 
 ---
 
@@ -69,7 +69,7 @@
 28. Deferred Decisions
 29. Risks and Constraints
 
-Appendices: A. Source traceability · B. Glossary · C. Sources cited by the requirements document · D. Red-team review log · E. Proposed schemas
+Appendices: A. Source traceability · B. Glossary · C. Sources cited by the requirements document · D. Red-team review log · E. Schemas
 
 ---
 
@@ -819,7 +819,7 @@ Soft delete and edit history, a custom-category collection (a fixed list plus fr
 | `lastOdometer` (OQ-17) | The maximum odometer across the vehicle's entries and its starting odometer, recomputed by the client on edit or delete. Rules require only a non-negative number. Concurrent offline writes can briefly lower it, and it corrects itself on the next entry or refresh. |
 | Membership invariants (OQ-34) | The owner is in `memberIds`. `members` keys match `memberIds`. `ownerId` changes only to an existing member. `createdBy` and `updatedBy` equal the caller. |
 | "Without data migrations" (OQ-40) | No bulk or server migrations. Older shapes upgrade lazily on read. |
-| Added fields | `entries.uploaderUids`, `users.drive.vehicleFolderIds`, `users.deletion`. Field-level shapes are in Appendix E (proposed). |
+| Added fields | `entries.uploaderUids`, `users.drive.vehicleFolderIds`, `users.deletion`. Field-level shapes are in Appendix E (approved). |
 
 ---
 
@@ -933,9 +933,9 @@ Android users start anonymously and link Google later without moving data. Web u
 | Abandoned anonymous account | Its documents remain in Firestore with no owner able to delete them. Known limitation of a server-free design, at a few KB per case. |
 | Settings (`users/{uid}`) during merge | The Google account's settings win (FR-MERGE-09). |
 | On-disk retry data | Kept until success or discard, then deleted (FR-MERGE-10). |
-| Merge write against the Foundation rules | Copies keep dates, `createdBy` and `updatedBy` are rewritten to the new owner, and vehicles are written before entries, so the `createdBy` = self rule and the `get()` membership check can pass (FR-MERGE-08). Verification pending: gate G3. |
+| Merge write against the Foundation rules | Copies keep dates, `createdBy` and `updatedBy` are rewritten to the new owner, and vehicles are written before entries, so the `createdBy` = self rule and the `get()` membership check can pass (FR-MERGE-08). Emulator-verified; production confirmation pending (gate G3). |
 | App closed or killed after sign-in but before the write completes | The retry data on disk is found on next launch and the app shows "Finish moving your data" (FR-MERGE-10). Partial copies may be visible in the Google account meanwhile. |
-| Batch size | "Batches of 500" is the target. Gate G3 sets the real constant against Firestore's rules access-call limits (OQ-35). |
+| Batch size | 500 is the batch size. The emulator spike found it passes when the rules read only the parent vehicle (OQ-35); production confirmation is pending. |
 
 **Dependencies.** Shared serializer (FR-SER); security rules allowing creation of vehicles under the Google uid; batch writes.
 
@@ -1059,12 +1059,12 @@ Foundation's rules scope is settled (FR-SEC-09, OQ-04), and `lastOdometer` handl
 
 ### 15.9 Rules feasibility checks [Review]
 
-Each concern is decided, and the items marked "verification pending" must be confirmed before the rules suite is written.
+Each concern is decided, and the items marked "verification pending" must still be confirmed against production.
 
 | # | Concern | Decision | Status |
 | --- | --- | --- | --- |
-| 1 | Merge and restore versus the matrix (`createdBy` = self, timestamps, `get()` ordering) | Dates kept, `createdBy` and `updatedBy` rewritten, timestamps checked as not in the future, vehicles written before entries (OQ-22) | Verification pending: gate G3 |
-| 2 | Batches of 500 versus rules access-call limits **[External — verify]** | 500 is the target; the spike sets the constant (OQ-35) | Verification pending: gate G3 |
+| 1 | Merge and restore versus the matrix (`createdBy` = self, timestamps, `get()` ordering) | Dates kept, `createdBy` and `updatedBy` rewritten, timestamps checked as not in the future, vehicles written before entries (OQ-22) | Emulator-verified 2026-10-06; production confirmation pending (gate G3) |
+| 2 | Batches of 500 versus rules access-call limits **[External — verify]** | 500 is the batch size; rules read only the parent vehicle (OQ-35) | Emulator-verified 2026-10-06; production confirmation pending (gate G3) |
 | 3 | Owner updates unconstrained | Membership invariants in FR-SEC-12 (OQ-34) | Decided |
 | 4 | No limits on counts or sizes | Field limits in rules; no App Check; document counts not limited (OQ-33) | Decided; accepted limitation |
 | 5 | Member-written `lastOdometer` unvalidated | Non-negative number only; recomputed by the client (OQ-17) | Decided |
@@ -1493,7 +1493,7 @@ Each sub-project below records everything the source states. For sub-projects 2�
 | Entry collection | One `entries` collection under each vehicle with `type` (`fuel`, `expense`, `service`, `income`, `trip`; `inspection` belongs to tab 7). |
 | Common entry fields | `date`, optional `odometer`, `amount: { minor, currency }`, optional `notes`, optional `category`, `attachments[]`, audit fields, `details`. |
 | Fuel details | `fuelType`, `quantity`, `quantityUnit` (L, gal_us, gal_uk, kg, kWh), `pricePerUnitMilli`, `fullTank`, `missedPrevious`, plus optional `stationName` and `chargingLocation` (see Appendix E). |
-| Service entries | One `service` entry per garage visit, with line items. Each line has a service type and its cost; the entry total is the sum of the lines, plus optional labour and discount. This matches how the bill is actually paid, keeps one receipt photo per bill, and the History list shows one row per garage visit. Reminders (tab 3) can still trigger per service type, for example "oil change every 10,000 km", by looking inside the line items. The field shapes are proposed in Appendix E (OQ-41). |
+| Service entries | One `service` entry per garage visit, with line items. Each line has a service type and its cost; the entry total is the sum of the lines, plus optional labour and discount. This matches how the bill is actually paid, keeps one receipt photo per bill, and the History list shows one row per garage visit. Reminders (tab 3) can still trigger per service type, for example "oil change every 10,000 km", by looking inside the line items. The field shapes are approved in Appendix E (OQ-41). |
 | Fuel entry input | Enter any two of price per unit, quantity and total; the app calculates the third. **Odometer is required** for fuel entries. "Full tank" is on by default. "Missed previous fill-up" is a toggle. Station name is optional free text, with no GPS. |
 | EV charging | Records kWh and cost, with home or public charging as a field. |
 | Mileage | Bi-fuel and EV mileage is calculated **per fuel type, only between two consecutive full fills of that same fuel**. For bi-fuel vehicles (petrol + CNG) the **headline figure is cost per km**, because running on both fuels distorts per-fuel mileage. |
@@ -1514,7 +1514,7 @@ Each sub-project below records everything the source states. For sub-projects 2�
 **Further decisions (2026-10-06)**
 
 - **OQ-30, Fuel details shape:** `quantityUnit` is L, gal_us, gal_uk, kg or kWh. Price per unit is stored as an integer in thousandths of a minor unit (`pricePerUnitMilli`). The total stays in integer minor units, so the "any two of three" input round-trips.
-- **OQ-41, Service entries:** Up to 5 attachments per entry is decided. Each service entry also has one entry category from the Services list (see OQ-43). `attachments[].itemId` is used for inspection item tags only. The line, labour, discount and stored-total shapes are in "Proposed schemas" and need approval.
+- **OQ-41, Service entries:** Up to 5 attachments per entry is decided. Each service entry also has one entry category from the Services list (see OQ-43). `attachments[].itemId` is used for inspection item tags only. The line, labour, discount and stored-total shapes are in "Schemas" (approved on 2026-10-06).
 - **OQ-42, Units in Logging:** CNG shows km/kg and EV shows km/kWh (mi/kg and mi/kWh for mile-based vehicles), fixed per fuel unit and not user-selectable. Petrol and diesel follow the Efficiency format setting. The trip reimbursement rate is per the vehicle's odometer unit (per km, per mi). A trip has no `amount`, and its reimbursement is computed in `details`.
 - **OQ-43, Service types and category:** The Services list is the service type of each line item (plus "Other" with free text). Each service entry also picks one entry category from the same list.
 - **OQ-44, Reimbursement:** Trip-calculated reimbursement is shown only in the Trips section and is excluded from cost and from net profit. An income entry categorised "reimbursement" is ordinary income and counts toward profit.
@@ -1526,7 +1526,7 @@ Each sub-project below records everything the source states. For sub-projects 2�
 
 **Acceptance criteria.** Defined in tab 2. Maestro covers airplane-mode logging.
 
-**Field shapes.** Proposed in Appendix E and approved before tab 2 starts.
+**Field shapes.** Approved in Appendix E on 2026-10-06 (tab 2).
 
 ### 23.3 Sub-project 3 — Reminders
 
@@ -1570,7 +1570,7 @@ Each sub-project below records everything the source states. For sub-projects 2�
 
 **Acceptance criteria.** Defined in tab 3.
 
-**Field shapes.** Proposed in Appendix E and approved before tab 3 starts.
+**Field shapes.** Approved in Appendix E on 2026-10-06 (tab 3).
 
 ### 23.4 Sub-project 4 — Reports and dashboard
 
@@ -1671,7 +1671,7 @@ Each sub-project below records everything the source states. For sub-projects 2�
 
 **Acceptance criteria.** Defined in tab 5.
 
-**Field shapes.** The backup file and CSV columns are proposed in Appendix E and approved before tab 5 starts.
+**Field shapes.** The backup file and CSV columns are approved in Appendix E (tab 5).
 
 ### 23.6 Sub-project 6 — Sharing
 
@@ -1719,7 +1719,7 @@ Whether members can **view** each other's receipts inside the app still depends 
 
 **Acceptance criteria.** Defined in tab 6.
 
-**Field shapes.** The invite shape and rules are proposed in Appendix E and approved before tab 6 starts.
+**Field shapes.** The invite shape and rules are approved in Appendix E (tab 6).
 
 ### 23.7 Sub-project 7 — Checklists
 
@@ -1761,7 +1761,7 @@ Whether members can **view** each other's receipts inside the app still depends 
 
 **Acceptance criteria.** Defined in tab 7.
 
-**Field shapes.** The template and inspection shapes are proposed in Appendix E and approved before tab 7 starts.
+**Field shapes.** The template and inspection shapes are approved in Appendix E (tab 7).
 
 ### 23.8 Sub-project 8 — Release
 
@@ -1881,7 +1881,7 @@ The source gives **no calendar dates or durations** except the Play gate (12+ te
 | --- | --- | --- | --- | --- |
 | G1 | Choose the Firebase project id | All implementation | Id chosen | **Done: `milevana`** (OQ-03) |
 | G2 | Quota budget: count reads and writes per operation (History cold open, add entry, All-vehicles report, vehicle delete, merge) at 100 to 500 daily active users, cache-first | Foundation data layer; tabs 2 and 4 | Projected usage within an agreed share of 50,000 reads and 20,000 writes | Decided scale; the count is still to be done (OQ-18) |
-| G3 | Rules and merge spike (emulator): write a serialized fixture (for example one vehicle and 501 entries) under a different uid in batches of 500 using the matrix rules | Foundation rules; AC-F3; tab 5 restore | No denial and no access-call error; batch constant set | Verification pending (OQ-22, OQ-35) |
+| G3 | Rules and merge spike (emulator): write a serialized fixture (for example one vehicle and 501 entries) under a different uid in batches of 500 using the matrix rules | Foundation rules; AC-F3; tab 5 restore | No denial and no access-call error; batch constant set | Emulator-verified 2026-10-06 (OQ-22, OQ-35); production limits still to be confirmed |
 | G4 | Foundation rules scope decision | AC-F6 | Decision recorded | **Done** (OQ-04) |
 | G5 | Sign-out and queued-write test: airplane mode, add an entry, sign out, reconnect; then queue a write as a member the owner removes while offline | FR-OUT, FR-OFF | Every loss or rejection has the defined behaviour | Verification pending (OQ-24, OQ-26) |
 | G6 | Closed-tester sign-in test: link Google on a Play-signed build with an account that is not a listed test user | Closed test after tab 2 | Linking works | Verification pending (OQ-28) |
@@ -1943,7 +1943,7 @@ These restate source behavior as testable statements. They are **not** source re
 | AC-D18 | Every rules-matrix row has an allowed and a denied emulator test. | §15.3 |
 | AC-D19 | No `READ_MEDIA_IMAGES` or `READ_EXTERNAL_STORAGE` permission is present in the Android release build. | §8.5 |
 | AC-D20 | The app contains no ad SDK and requests no location permission. | §4 |
-| AC-D21 | The Foundation rules admit the account-merge write path (copies owned by the Google uid, in batches). Verification pending: gate G3 (OQ-22, OQ-35). | AC-F3 with §15.2 |
+| AC-D21 | The Foundation rules admit the account-merge write path (copies owned by the Google uid, in batches). Emulator-verified 2026-10-06; production confirmation pending (gate G3; OQ-22, OQ-35). | AC-F3 with §15.2 |
 | AC-D22 | Android first launch shows one welcome screen before "Add your first vehicle". | §14.2 |
 | AC-D23 | Sign-out with pending writes offers Wait and sync, or Sign out and discard. | §14.6 |
 | AC-D24 | A queued write rejected by the server shows a warning and a Sync issues notice with Retry or Discard. | §16.4 |
@@ -1993,13 +1993,13 @@ L1 to L7 are accepted limitations stated in the source. L8 to L10 are **[Derived
 
 ## 27. Open Questions
 
-Every question raised while writing and reviewing this PRD is now decided. Decisions come from the product owner's answers and from the proposed defaults they approved on 2026-10-06. The last column records each decision, and the same decisions are in `requirements.md` ("Decisions on open questions"). Items marked **Verification pending** are decided but must be checked against Firebase, Google or Play before they are relied on. The field-level shapes proposed to complete the tab designs (OQ-01, OQ-41) are in Appendix E and need approval before each tab starts.
+Every question raised while writing and reviewing this PRD is now decided. Decisions come from the product owner's answers and from the proposed defaults they approved on 2026-10-06. The last column records each decision, and the same decisions are in `requirements.md` ("Decisions on open questions"). Items marked **Verification pending** are decided but must be checked against Firebase, Google or Play before they are relied on. The field-level shapes for the tab designs (OQ-01, OQ-41) are in Appendix E and were approved on 2026-10-06.
 
 | ID | Question | Why it matters | Needed by | Decision (2026-10-06) |
 | --- | --- | --- | --- | --- |
-| **OQ-01** | The source says v1 is "designed in eight tabs in this document", but only tab 1 (Foundation) is present. Where are the designs for tabs 2–8? | This PRD can state only scope-level requirements for sub-projects 2–8 (§23). Acceptance criteria, schemas and behaviors there are undefined. | Before each tab's implementation | **Decided.** The tab designs are the decisions recorded in this document's tab sections. Field-level shapes are in "Proposed schemas" and need approval before each tab starts. |
+| **OQ-01** | The source says v1 is "designed in eight tabs in this document", but only tab 1 (Foundation) is present. Where are the designs for tabs 2–8? | This PRD can state only scope-level requirements for sub-projects 2–8 (§23). Acceptance criteria, schemas and behaviors there are undefined. | Before each tab's implementation | **Decided.** The tab designs are the decisions recorded in this document's tab sections. Field-level shapes are in "Schemas" (approved on 2026-10-06). |
 | **OQ-02** | What are the success metrics for v1, such as adoption, retention and crash-free rate? | The source defines none. The only signals are the done-when list and the Blaze-review trigger. | Product decision, before launch | **Decided.** No numeric v1 targets. The tracked signals are completion of the closed-test gate, the weekly Firestore usage check, and crash reports. |
-| **OQ-03** | **Firebase project id** (e.g. `milevana` or `milevana-app`)? | Source: "one setup choice remains before implementation starts". Permanent once created. Forms the `<project-id>.web.app` fallback. | **Blocking: before any implementation** (RT-03) | **Decided.** The Firebase project id is `milevana` (fallback address `milevana.web.app`). It is permanent once created. If the id is taken when the project is created, the id actually created is recorded here. |
+| **OQ-03** | **Firebase project id** (e.g. `milevana` or `milevana-app`)? | Source: "one setup choice remains before implementation starts". Permanent once created. Forms the `<project-id>.web.app` fallback. | **Blocking: before any implementation** (RT-03) | **Decided.** The Firebase project id is `milevana` (fallback address `milevana.web.app`). It is permanent. The project was created with this id and confirmed on 2026-10-06. |
 | **OQ-04** | Foundation done-when requires rules for "members, entries, reminders, checklist templates and invites" to pass the emulator suite, but §15 defers `invites` rules to tab 6 and `checklistTemplates` rules to tab 7. Which rules must exist and be tested in Foundation? (RT-05) | The Foundation exit criterion AC-F6 cannot be verified as written. The Sharing decisions describe invite validation, self-join, self-leave, ownership transfer and receipt-sharing rules as updates to the Foundation rules, written in tab 6. That supports reading AC-F6's `invites` clause as deferred, but AC-F6 in the source still lists invites. Confirm whether to amend it. | **Blocking: before Foundation rules work** | **Decided.** Foundation writes the `checklistTemplates` rules and ships default-deny for `invites`, self-join, leave and ownership transfer, tested as denied. AC-F6 is amended to say so. Tab 6 adds the real invite rules. |
 | **OQ-05** | The dismissible link prompt fires "after the 5th entry": is that counted per vehicle or across all vehicles? How often does it reappear after dismissal? | Affects the linking funnel and the user's data-loss exposure. | Foundation | **Decided.** The "5th entry" counts entries across all vehicles. A dismissed prompt does not reappear. The "Your data isn't backed up" banner on More stays. |
 | **OQ-06** | What exactly happens on **Switch without moving** (is the anonymous data left in place and abandoned, and is the user told?) and on **Cancel** (does the user stay anonymous and unlinked)? (RT-11) | The source names these options but specifies only "Move and switch" in detail. An earlier draft of this PRD stated an outcome for "Switch without moving"; that was removed. | Foundation | **Decided.** Cancel keeps the user anonymous with nothing changed. Switch without moving signs in to the Google account and leaves the phone's data behind, after a warning that it cannot be recovered. |
@@ -2018,7 +2018,7 @@ Every question raised while writing and reviewing this PRD is now decided. Decis
 | **OQ-19** | **All vehicles** report across vehicles with different currencies or units. **Partly decided:** totals are shown per currency and never converted, and mileage stays per vehicle. Still open: how distance driven and cost per km are shown in the "All vehicles" view when the vehicles' odometer units differ (`km`, `mi`, `hours`). | The currency question is settled. Summing distances in different units is not. | Tab 4 | **Decided.** Totals are per currency and never converted. Distance and cost per km are shown per odometer unit. |
 | **OQ-20** | Which features are available on web, and with what parity (Drive via Google Identity Services is named, and backup and restore are now decided to work on web; whether attachments and automatic backup work on web is not stated)? | Web is secondary and online-only, but scope per feature is unstated. | Per tab | **Decided.** Backup and restore, reminders, reports, checklists, sharing and attachments (online only) work on web. Automatic backup is Android only. |
 | **OQ-21** | Layout for web widths below 768 px. | The source defines only ≥768 px behavior. | Foundation | **Decided.** Web below 768 px uses the mobile layout. |
-| **OQ-22** | **[Review]** How do merged and restored copies satisfy the rules? Are `createdBy`, `createdByName`, `updatedBy`, `createdAt` and `updatedAt` preserved or rewritten? What exactly does "timestamps compared to `request.time`" require (equality, or not in the future)? In what order are vehicles and entries written, given that `get()` sees pre-write state? (RT-02) | The matrix requires `createdBy` = self, and merged entries carry the anonymous uid. AC-F3 and tab 5 restore depend on the answer. The backup also includes other members' entries on owned shared vehicles, and restore of those has the same problem. | **Blocking: before Foundation rules and merge** | **Decided.** Copies keep their original `date`, `createdAt` and `updatedAt`. `createdBy` and `updatedBy` are rewritten to the new owner's uid, and `createdByName` is kept. Rules check that timestamps are not in the future instead of equal to `request.time`. Restored entries by other members on a shared vehicle the user owns are attributed to the user. Vehicles are written before their entries. Verification pending: gate G3. |
+| **OQ-22** | **[Review]** How do merged and restored copies satisfy the rules? Are `createdBy`, `createdByName`, `updatedBy`, `createdAt` and `updatedAt` preserved or rewritten? What exactly does "timestamps compared to `request.time`" require (equality, or not in the future)? In what order are vehicles and entries written, given that `get()` sees pre-write state? (RT-02) | The matrix requires `createdBy` = self, and merged entries carry the anonymous uid. AC-F3 and tab 5 restore depend on the answer. The backup also includes other members' entries on owned shared vehicles, and restore of those has the same problem. | **Blocking: before Foundation rules and merge** | **Decided.** Copies keep their original `date`, `createdAt` and `updatedAt`. `createdBy` and `updatedBy` are rewritten to the new owner's uid, and `createdByName` is kept. Rules check that timestamps are not in the future instead of equal to `request.time`. Restored entries by other members on a shared vehicle the user owns are attributed to the user. Vehicles are written before their entries. Emulator-verified on 2026-10-06 (gate G3); production confirmation pending. |
 | **OQ-23** | **[Review]** After the app is closed or killed between sign-in and merge completion, how are the on-disk retry data found and resumed on the next launch? How is partial state in the Google account handled? (RT-11) | FR-MERGE-05 keeps the data but defines no resume path. | Foundation | **Decided.** On launch, if merge retry data exists, the app shows "Finish moving your data". |
 | **OQ-24** | **[Review]** What happens to unsynced writes when a linked user signs out? What local state must sign-out clear beyond `clearPersistence()` (scheduled notifications, selected vehicle, merge-retry data, Google Sign-In session and Drive tokens)? What are the SDK preconditions for `clearPersistence()`? (RT-06) | Silent data loss, and the stated privacy goal is not met by the stated mechanism. | Foundation | **Decided.** If writes are pending, sign-out shows how many changes have not synced and offers Wait and sync, or Sign out and discard. Sign-out also clears scheduled notifications, the saved selected vehicle, any merge retry data, and the Google Sign-In session. |
 | **OQ-25** | **[Review]** Confirm the assumption that web Google sign-in resolves to the same uid as a linked Android user, and define the web-first-then-Android path. (RT-26) | AC-F4 depends on it. | Foundation | **Decided.** Documented as an assumption: linking Google to the anonymous uid keeps the uid, so web sees the same vehicles. A user who signs in on web first and later links on Android goes through the merge path. |
@@ -2031,13 +2031,13 @@ Every question raised while writing and reviewing this PRD is now decided. Decis
 | **OQ-32** | **[Review]** What is the type of `date` (timestamp or date-only), how is the time zone handled, and how is a financial-year range defined? (RT-19) | Affects rules, CSV, serializer round-trips and reports. The financial year is now decided as April–March, with no setting to change it. | Foundation / tab 4 | **Decided.** `date` is a timestamp of the chosen local date and time. The financial year (April to March) uses the device time zone. |
 | **OQ-33** | **[Review]** Should rules carry limits on documents per user, entries per vehicle, array sizes, string lengths and document size? Is resistance to one client exhausting the project-wide daily quota in v1 scope? (RT-10) | Any signed-in user, including an anonymous one, can create vehicles. | Foundation | **Decided.** Rules cap what they can: text lengths, array sizes (5 attachments, 10 members, 50 template items) and document shape. Total document counts cannot be limited by rules. App Check is not in v1, and abuse resistance beyond field limits is an accepted limitation. |
 | **OQ-34** | **[Review]** Which invariants must the rules enforce on owner updates: the owner is a member; `members` keys match `memberIds`; `ownerId` changes only through the tab 6 transfer path? Are `createdByName` and `updatedBy` constrained? (RT-15) | Without them the tab 6 rules and adversarial tests have nothing to constrain. | Foundation / tab 6 | **Decided.** The owner must be in `memberIds`. The `members` keys match `memberIds`. `ownerId` changes only to an existing member. `createdBy` and `updatedBy` must equal the caller. |
-| **OQ-35** | **[Review]** Do batches of 500 work with rules that call `get()` per write, given Firestore's rules access-call limits? Does the "one billed read per request" claim hold for batches? (RT-04) **[External — verify]** | Batches of 500 are specified for vehicle delete and merge. | **Blocking: before fixing batch size** | **Decided.** 500 is the target batch size. The emulator spike (gate G3) sets the real constant against the rules access-call limits. |
+| **OQ-35** | **[Review]** Do batches of 500 work with rules that call `get()` per write, given Firestore's rules access-call limits? Does the "one billed read per request" claim hold for batches? (RT-04) **[External — verify]** | Batches of 500 are specified for vehicle delete and merge. | **Blocking: before fixing batch size** | **Decided.** 500 is the batch size. The emulator spike (gate G3, 2026-10-06) found a batch of 500 entries passes when the rules read only the parent vehicle document, because repeated reads of the same document count once, while a single write reading 11 distinct documents, and a batch of 30 writes each reading a different document, are denied. Rules must therefore read only the parent vehicle. Production confirmation is pending. |
 | **OQ-36** | **[Review]** May invite-code document ids and uids appear in crash reports? How is Crashlytics described in the privacy policy and Play data-safety form, given it assigns an installation id? (RT-21) **[External — verify]** | `invites/{code}` uses the code as document id, so it is a capability token. | Foundation / tab 8 | **Decided.** Invite paths are redacted from crash reports and the uid is not set as the Crashlytics user id. The privacy policy discloses the Crashlytics installation id. |
 | **OQ-37** | **[Review]** Which of the testing gaps in §21.5 will be closed, and how is the link-Google flow tested? (RT-13, RT-14) | The native adapter and the merge flow are the highest-risk paths. | Foundation | **Decided.** Add an emulator integration test for the merge write path. Link Google stays manual with a test Google account. Native offline behaviour is covered by the Maestro airplane-mode flow plus manual checks. |
 | **OQ-38** | **[Review]** How do rules, indexes, secrets, Play submission and Hosting deployment work (§22.5)? (RT-24) | Rules are the entire backend. | Foundation | **Decided.** One production Firebase project, with the emulator for tests. Rules and indexes deploy on tagged releases. Secrets live in GitHub and EAS secrets. EAS Submit publishes to Play, and Hosting deploys from CI. |
 | **OQ-39** | **[Review]** How is the first-launch bootstrap made safe when a session exists but `users/{uid}` is missing or outdated? How does the selected vehicle persist, and is it per user? Can entries be added to an archived vehicle? (RT-29, RT-30) | Not defined in the source. | Foundation | **Decided.** If a session exists but `users/{uid}` is missing, it is created with defaults. The selected vehicle is stored per uid. Archived vehicles are read-only until unarchived. |
 | **OQ-40** | **[Review]** What does "without data migrations" mean given that repositories "upgrade older shapes on read" and tabs 2 and 7 define the `details` shapes? (RT-20) | The two source statements are in tension. | Foundation | **Decided.** It means no bulk or server migrations. Older shapes upgrade lazily on read. |
-| **OQ-41** | **Service entries (tab 2 / tab 3).** The source now decides that a service is one entry with line items, each with a service type and cost, totalled with optional labour and discount, with one receipt photo per bill. It does not define: the shape of a line; whether labour and discount are amounts or percentages and where they are stored; whether `amount` is the stored total or derived from the lines; how the list of service types is defined (fixed list, or tied to categories); whether one receipt per bill is enforced (the Drive decisions allow up to 5 attachments per entry, so "one receipt per bill" is the intent, not a limit); what `attachments[].itemId` references for service entries (for inspections it is now decided to be the checklist item a photo is tagged with); and how a reminder stores its reference to a service type. (What "matching" means is now decided: a service line item of that type, or an expense in that category; see §23.3.) | Entry `amount` is a single `{ minor, currency }` and rules require an integer `amount.minor` (see OQ-31). Reminders, History, CSV and backup all read these entries. | Tab 2 / tab 3 | **Decided.** Up to 5 attachments per entry is decided. Each service entry also has one entry category from the Services list (see OQ-43). `attachments[].itemId` is used for inspection item tags only. The line, labour, discount and stored-total shapes are in "Proposed schemas" and need approval. |
+| **OQ-41** | **Service entries (tab 2 / tab 3).** The source now decides that a service is one entry with line items, each with a service type and cost, totalled with optional labour and discount, with one receipt photo per bill. It does not define: the shape of a line; whether labour and discount are amounts or percentages and where they are stored; whether `amount` is the stored total or derived from the lines; how the list of service types is defined (fixed list, or tied to categories); whether one receipt per bill is enforced (the Drive decisions allow up to 5 attachments per entry, so "one receipt per bill" is the intent, not a limit); what `attachments[].itemId` references for service entries (for inspections it is now decided to be the checklist item a photo is tagged with); and how a reminder stores its reference to a service type. (What "matching" means is now decided: a service line item of that type, or an expense in that category; see §23.3.) | Entry `amount` is a single `{ minor, currency }` and rules require an integer `amount.minor` (see OQ-31). Reminders, History, CSV and backup all read these entries. | Tab 2 / tab 3 | **Decided.** Up to 5 attachments per entry is decided. Each service entry also has one entry category from the Services list (see OQ-43). `attachments[].itemId` is used for inspection item tags only. The line, labour, discount and stored-total shapes are in "Schemas" (approved on 2026-10-06). |
 | **OQ-42** | **Units in the Logging decisions.** (a) Mileage is calculated per fuel type, including CNG (stored in kg) and EV (kWh), but the Efficiency format setting offers only km/l, L/100 km and mpg. What efficiency unit applies to CNG and EV, and is the setting list to be extended? (b) The trip reimbursement rate is "per km", but a vehicle's `odometerUnit` can be `km`, `mi` or `hours`. What is the rate's unit for a vehicle in miles, or for hours? The same question applies to the reminder decisions and to the report metrics "cost per km" and "distance driven", which are in km ("average km per day", "within 500 km", "due in 1,200 km"). (c) How do trip fields (start and end date/time, start and end odometer, calculated reimbursement) map onto the common entry fields `date`, `odometer?` and `amount`? What is `amount` for a trip with no rate? | The Settings table in the source (Foundation) is fixed, so (a) conflicts with the new mileage decision. Rules require `amount.minor` on create. | Foundation settings / tab 2 | **Decided.** CNG shows km/kg and EV shows km/kWh (mi/kg and mi/kWh for mile-based vehicles), fixed per fuel unit and not user-selectable. Petrol and diesel follow the Efficiency format setting. The trip reimbursement rate is per the vehicle's odometer unit (per km, per mi). A trip has no `amount`, and its reimbursement is computed in `details`. |
 | **OQ-43** | **Service categories versus line items.** The service list (general service, engine oil, and so on) could be the list of service types for line items, the entry `category`, or both. A service entry has several lines, but `category?` is one value copied onto the entry. Which applies, and what is copied to the entry? Is "Other" allowed as a line's service type? | Reminders per service type read the line items. History search covers categories. | Tab 2 / tab 3 | **Decided.** The Services list is the service type of each line item (plus "Other" with free text). Each service entry also picks one entry category from the same list. |
 | **OQ-44** | **Reimbursement.** "Reimbursement" is an income category, and trips produce a calculated reimbursement amount that is not an income entry. "Reports show reimbursements separately" could mean the trip-calculated amounts, the income entries categorised "reimbursement", or both. Which one, and how do they combine in profit figures? The Reports decisions add that the Trips section shows total reimbursement and that cost per km excludes trip reimbursements, but not whether net profit includes them. | Gig-driver profit figures are a stated goal. | Tab 2 / tab 4 | **Decided.** Trip-calculated reimbursement is shown only in the Trips section and is excluded from cost and from net profit. An income entry categorised "reimbursement" is ordinary income and counts toward profit. |
@@ -2150,7 +2150,7 @@ Decisions the source explicitly places elsewhere or in the future.
 | Sources | Appendix C |
 | Logging, Reminders, Reports, Drive, Sharing, Checklists and Release decisions (added 2026-10-06) | §23.2 to §23.8 |
 | Decisions on open questions (2026-10-06) | §27 and the sections each decision changes |
-| Proposed schemas | Appendix E |
+| Schemas | Appendix E |
 
 ## Appendix B. Glossary (terms as used in the source)
 
@@ -2239,7 +2239,7 @@ The Checklist decisions were then added to `requirements.md` ("Checklists: decis
 
 The Release decisions were then added to `requirements.md` ("Release: decisions for tab 8"), except for two held items: buying a custom domain, and a welcome screen before adding the first vehicle. These conflict with existing text and are recorded in OQ-61 as awaiting a product decision. The PRD change is in §14.7, §23.8, §24.5, DD-07 and OQ-15, OQ-16, OQ-28, OQ-51, OQ-57 and OQ-61 to OQ-63.
 
-On 2026-10-06 every open question was decided: the blocking and conflicting items by the product owner's answers, and the rest by proposed defaults the product owner approved. `requirements.md` gained "Decisions on open questions" and "Proposed schemas". In this PRD the decisions are in §27 and in the sections they change. The changes that replaced earlier statements are:
+On 2026-10-06 every open question was decided: the blocking and conflicting items by the product owner's answers, and the rest by proposed defaults the product owner approved. `requirements.md` gained "Decisions on open questions" and "Schemas". In this PRD the decisions are in §27 and in the sections they change. The changes that replaced earlier statements are:
 
 - **Welcome screen:** principle P4, FR-AUTH-04, PR-04, G5 and AC-F1 now allow one welcome screen on Android. Web gets a landing page.
 - **Billing:** the project stays on the free plan with no Blaze fallback. The production signal now triggers a usage review (§19.4, DD-05).
@@ -2249,9 +2249,9 @@ On 2026-10-06 every open question was decided: the blocking and conflicting item
 - **Currency setting:** it no longer "converts" amounts (FR-SET-03).
 - **Backup scope:** backups contain only the vehicles the user owns.
 
-## Appendix E. Proposed schemas (for approval)
+## Appendix E. Schemas (approved 2026-10-06)
 
-**Status: proposed, needs approval.** These field-level shapes were drafted on 2026-10-06 to complete the tab designs. They follow the product decisions recorded in this document, but the field names and details below are proposals, not decisions. Each tab's shapes should be approved before that tab starts. Where a shape needs a decision that was not made, it says so.
+**Status: approved on 2026-10-06.** These field-level shapes were drafted on 2026-10-06 to complete the tab designs, and the product owner approved them the same day. They follow the product decisions recorded in this document. Changes after approval should be recorded as new decisions.
 
 ### Entry additions
 
@@ -2283,7 +2283,7 @@ The user enters any two of price per unit, quantity and total, and the app calcu
 | `labourMinor` | Optional integer in minor units |
 | `discountMinor` | Optional integer in minor units. A fixed amount, not a percentage. |
 
-The entry `amount.minor` is the stored total: the sum of the line costs, plus labour, minus discount, never below zero. The entry also has one `category` from the Services list, and up to 5 attachments. Decision needed: whether a discount may also be a percentage.
+The entry `amount.minor` is the stored total: the sum of the line costs, plus labour, minus discount, never below zero. The entry also has one `category` from the Services list, and up to 5 attachments. The discount is a fixed amount, not a percentage (approved).
 
 ### Trip details (`details` on a `trip` entry)
 
@@ -2339,7 +2339,7 @@ Common columns: date, vehicle, type, category, amount, currency, odometer, notes
 
 Amounts are plain decimals with the currency in its own column. The file is UTF-8 with a byte-order mark.
 
-### Rules additions (proposed)
+### Rules additions (approved)
 
 - Timestamps must not be in the future.
 - `createdBy` and `updatedBy` equal the caller.
