@@ -1,5 +1,5 @@
-// Dashboard (REM-10): the "Upcoming & overdue" card for the selected vehicle
-// on top of the shell; the rest of the dashboard arrives with tab 4 (DR-17).
+// Dashboard: the "Upcoming & overdue" card (REM-10) plus the spend, per-unit
+// cost, fuel headline, income-vs-cost and recent-entries figures (RPT-13).
 
 import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
@@ -8,8 +8,9 @@ import { t } from '../../src/i18n';
 import { useScopedVehicle } from '../../src/ui/ComingSoonTab';
 import { NoVehicle } from '../../src/ui/Empty';
 import { ErrorBoundary } from '../../src/ui/ErrorBoundary';
-import { Button, Card, T } from '../../src/ui/kit';
+import { Button } from '../../src/ui/kit';
 import { Notices } from '../../src/ui/Notices';
+import { DashboardCards } from '../../src/ui/reports/DashboardCards';
 import { useTheme } from '../../src/ui/theme';
 import { UpcomingCard } from '../../src/ui/UpcomingCard';
 import { VehicleHeader } from '../../src/ui/VehicleHeader';
@@ -39,12 +40,7 @@ function DashboardTab() {
           onSeeAll={() => router.push({ pathname: '/reminders', params: { vehicle: vehicle.id } })}
           onAdd={() => router.push({ pathname: '/reminder/[id]', params: { id: 'new', vehicle: vehicle.id } })}
         />
-        <Card style={{ alignItems: 'center', paddingVertical: 24, gap: 4, marginHorizontal: 20 }}>
-          <T size={15} weight="semi">{t('dashboard.comingSoon')}</T>
-          <T size={13} color={th.muted} style={{ textAlign: 'center' }}>
-            {t('dashboard.scoped', { tab: t('tabs.dashboard'), vehicle: vehicle.name })}
-          </T>
-        </Card>
+        <DashboardCards vehicle={vehicle} />
       </ScrollView>
       <View style={{ position: 'absolute', right: 20, bottom: 20, left: 20 }}>
         <Button title={t('nav.addEntry')} icon="plus" onPress={() => router.push('/add')} />

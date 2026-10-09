@@ -178,3 +178,81 @@ no prediction); cap the per-vehicle reminder count below 50. No change is
 recommended at the current numbers.
 
 Gate G2 for tab 3 may be marked satisfied: REM-03 is acceptable.
+
+---
+
+# RPT-01 — Reports quota spike (gate G2, tab 4)
+
+Same method and threshold (DR-20: ≤ 25,000 reads and ≤ 10,000 writes/day at
+500 DAU). Counted from `src/features/reportData.ts`, `src/features/entries.ts`
+and `src/data/repos/entryRepo.ts` (`watch`/`refresh`). Reports are read-only:
+they add no writes of their own; every cost below is a read.
+
+Model: 500 DAU, 2 vehicles each, ~100 lifetime entries per vehicle,
+~6 entries logged/user/day, 2 sessions/day. Reports opened ~0.3 times per
+user per day (secondary tab); the "All vehicles" scope — the only scope that
+adds listens — ~0.1 opens/user/day; pull-to-refresh ~0.02/user/day
+(the live watch already streams changes, so refresh is rare); ~2% of DAU
+reinstalls/clears cache daily.
+
+## Per-operation counts (Reports)
+
+| Operation | Reads | Writes | Notes |
+| --- | --- | --- | --- |
+| Per-vehicle report open / Dashboard open | 0 | 0 | The selected vehicle reuses the one shared session entry watch (PD-10); Reports, History and Dashboard read the same loaded set — opening a report bills nothing new. |
+| Range change (all six ranges, custom included) | 0 | 0 | In-memory recompute over the loaded set; verified by `reportData`/UI tests — no query is issued. |
+| "All vehicles" attach, per extra vehicle (warm) | ≈ changed docs | 0 | Cache-first resume bills deltas only; vehicles load strictly one at a time and failed vehicles are skipped without blocking the rest (RPT-12). |
+| "All vehicles" attach (cold — fresh install / web reload) | N per extra vehicle | 0 | ~100 docs per vehicle, once per fresh install/web reload that opens the scope. |
+| Report watch live while open | ≈ entry deltas | 0 | Changes from another device or member stream through the open listener (PD-10) — billed once per changed doc per listener. |
+| Pull-to-refresh on Reports | N per scope vehicle | 0 | `entries.refresh` = `getDocs(source:'server')`; user-initiated only, never automatic. |
+| Archived vehicle report (`?vehicle=` deep link) | ≈ warm attach / N cold | 0 | Same one-vehicle listen as any non-selected scope vehicle. |
+| Malformed/failed vehicle | ≈ failed attach | 0 | Skip + per-vehicle notice; no retries, so no read amplification. |
+
+## Daily projection (500 DAU)
+
+| Driver | Reads/day | Writes/day |
+| --- | --- | --- |
+| All-vehicles warm attaches (0.1 opens × ~5 delta docs × 500 users) | 250 | 0 |
+| Watch deltas on extra vehicles while reports are open (~2 docs × 0.1 × 500) | 100 | 0 |
+| Cold attaches amortized (2% reinstall × ~50% scope users × 100 docs) | 500 | 0 |
+| Pull-to-refresh (0.02/user/day × ~120 docs average scope) | 1,200 | 0 |
+| Per-vehicle opens, Dashboard opens, range changes | 0 | 0 |
+| **Reports total** | **≈ 2,050** | **0** |
+| **Foundation + Logging + Reminders carry-over** | **≈ 24,600** | **≈ 5,700** |
+| **Combined** | **≈ 26,650** | **≈ 5,700** |
+
+At 100 DAU the same model gives ≈ 5,300 reads and ≈ 1,150 writes.
+
+## Verdict
+
+**FAIL on reads, marginal; PASS on writes.** ≈26,650 reads is ~107% of the
+25,000 DR-20 share (≈53% of the actual 50,000-read Spark quota) at 500 DAU;
+writes stay ≈5,700 (~57%). At 100 DAU the projection is ≈5,300 reads —
+comfortably inside.
+
+The breach is driven by the carry-over already sitting at ~98% of the share
+before Reports: essentially any non-trivial reads push past 25k. Within
+Reports the dominant term is the N-scaled pull-to-refresh (~1,200/day);
+attaches and deltas are small because the shared-set design (PD-10) makes the
+common case — per-vehicle report, dashboard, every range change — cost zero
+extra reads.
+
+**Recommendation (implemented in RPT-04/RPT-12, `src/features/reportData.ts`):**
+one loaded entry set per vehicle shared between Reports, History and
+Dashboard (single hook, loaded once); extra vehicles attach lazily, strictly
+in turn, only while an All-vehicles/archived report is mounted, and stop on
+unmount; refresh stays pull-only; range changes never touch the network. No
+cheaper design exists on Spark without giving up required report detail —
+aggregate counters can't produce the per-fuel/per-category/per-platform
+breakdowns the stories need, and paging a report is deferred by PD-10 until a
+vehicle nears ~5,000 entries.
+
+**Levers if the owner wants the projection under the share:** re-weigh
+DR-20's 50% policy share against real telemetry (the hard cap is 50k);
+attach an aggregate/counter doc per vehicle (adds one write per entry — write
+headroom exists — but loses the breakdowns); or accept it and re-check with
+production usage numbers before v1 launch.
+
+Gate G2 for tab 4 does not pass cleanly at this model: RPT-04 and RPT-12 are
+recorded as implemented to the cheapest available design with the marginal
+breach flagged for re-check on real telemetry.

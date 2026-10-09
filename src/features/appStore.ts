@@ -55,6 +55,12 @@ interface AppState {
   entries: EntryRecord[];
   entriesVehicleId: string | null;
   entriesArrived: boolean;
+  /** Report cache: per-vehicle entry sets for the All-vehicles report (RPT-04).
+   *  The selected vehicle is NOT stored here — it reuses `entries`. */
+  reportEntries: Record<string, EntryRecord[]>;
+  reportEntriesArrived: Record<string, boolean>;
+  /** Vehicles whose report load failed — "Couldn't load <name>" (RPT-12). */
+  reportEntriesFailed: Record<string, boolean>;
   /** Latest reminders watch snapshot per vehicle id (REM-04 read model). */
   reminders: Record<string, ReminderRecord[]>;
   /** Vehicles whose reminders watch has emitted at least once. */
@@ -125,6 +131,9 @@ const initial: Omit<AppState, 'set'> = {
   entries: [],
   entriesVehicleId: null,
   entriesArrived: false,
+  reportEntries: {},
+  reportEntriesArrived: {},
+  reportEntriesFailed: {},
   reminders: {},
   remindersArrived: {},
   odoEntries: {},

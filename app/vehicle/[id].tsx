@@ -156,10 +156,17 @@ function VehicleDetailScreen() {
         <Header title={archived ? t('vehicleDetail.status') : t('vehicleForm.editTitle')} />
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
           {archived ? (
-            <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+            <View style={{ paddingHorizontal: 20, paddingBottom: 8, gap: 10 }}>
               <Card>
                 <T size={13} color={th.muted}>{t('vehicleForm.archivedReadonly')}</T>
               </Card>
+              {/* PD-08: an archived vehicle keeps its single-vehicle report */}
+              <Button
+                title={t('reports.viewReports')}
+                kind="secondary"
+                icon="chart-box-outline"
+                onPress={() => router.push({ pathname: '/(tabs)/reports', params: { vehicle: vehicle.id } })}
+              />
             </View>
           ) : null}
           {deleteFailed ? (

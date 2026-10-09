@@ -146,6 +146,20 @@ export function formatAmount(amount: Money, opts: { showSign?: boolean } = {}): 
   return `${sign}${symbol}${grouped}${fracPart ? '.' + fracPart : ''}`;
 }
 
+/**
+ * Per-unit rate for reports (PD-02): a fractional minor-per-unit value shown
+ * with two decimals for currencies of 2+ decimals, one decimal otherwise.
+ */
+export function formatRate(minorPerUnit: number, currency: string): string {
+  const exp = exponentOf(currency);
+  const decimals = exp >= 2 ? 2 : 1;
+  const major = minorPerUnit / 10 ** exp;
+  const neg = major < 0;
+  const [intPart, fracPart] = Math.abs(major).toFixed(decimals).split('.');
+  const symbol = SYMBOLS[currency] ?? `${currency} `;
+  return `${neg ? '-' : ''}${symbol}${groupDigits(intPart, currency === 'INR')}.${fracPart}`;
+}
+
 // --- Compatibility shims for the existing first-slice screens (removed in 1B) ---
 /** @deprecated kept for the local-store UI slice; new code uses decimalToMinor. */
 export function toMinor(major: number): number {

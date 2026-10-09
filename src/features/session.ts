@@ -15,6 +15,7 @@ import type { MalformedDocInfo } from '../data/repos/base';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
 import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
+import { stopReportEntryWatches } from './reportData';
 import { requestRebuild, startReminders, stopReminders, syncReminderWatches } from './reminders';
 import { syncEntryWatch, stopEntryWatch } from './linkPrompt';
 import { adapter, getRepos, setMalformedSink } from './runtime';
@@ -75,6 +76,7 @@ function teardownSession(): void {
   sessionStops = [];
   stopReminders();
   stopEntryWatch();
+  stopReportEntryWatches();
   entriesWatchStop?.();
   entriesWatchStop = null;
   entriesWatchId = null;
@@ -102,6 +104,9 @@ export function pauseSession(): void {
     entries: [],
     entriesVehicleId: null,
     entriesArrived: false,
+    reportEntries: {},
+    reportEntriesArrived: {},
+    reportEntriesFailed: {},
     pendingDeletes: {},
     userDoc: null,
     selectedVehicleId: null,
@@ -146,6 +151,9 @@ async function handleAuthChange(user: AuthUser | null): Promise<void> {
       entries: [],
       entriesVehicleId: null,
       entriesArrived: false,
+      reportEntries: {},
+      reportEntriesArrived: {},
+      reportEntriesFailed: {},
       pendingDeletes: {},
       selectedVehicleId: null,
       reportsAllVehicles: false,

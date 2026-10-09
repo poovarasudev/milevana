@@ -23,7 +23,7 @@ export function Icon({ name, size = 22, color }: { name: IconName; size?: number
 }
 
 export function T({ children, size = 15, weight = 'medium', color, style, ...rest }: {
-  children: ReactNode; size?: number; weight?: keyof typeof font; color?: string; style?: object; numberOfLines?: number; onPress?: () => void;
+  children: ReactNode; size?: number; weight?: keyof typeof font; color?: string; style?: object; numberOfLines?: number; onPress?: () => void; testID?: string;
 }) {
   const th = useTheme();
   return (
@@ -82,9 +82,9 @@ export function Header({ title, subtitle, back = true, right }: { title: string;
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+export function Card({ children, style, testID }: { children: ReactNode; style?: ViewStyle; testID?: string }) {
   const th = useTheme();
-  return <View style={[{ backgroundColor: th.card, borderRadius: 20, borderWidth: 1, borderColor: th.divider, padding: 16 }, style]}>{children}</View>;
+  return <View testID={testID} style={[{ backgroundColor: th.card, borderRadius: 20, borderWidth: 1, borderColor: th.divider, padding: 16 }, style]}>{children}</View>;
 }
 
 export function Button({ title, onPress, kind = 'primary', disabled, icon }: {
