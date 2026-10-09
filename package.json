@@ -64,9 +64,10 @@
     "test:emulator": "jest --config jest.emulator.config.js",
     "test:rules": "npm --prefix firebase test",
     "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "check:deps": "node scripts/check-deps.mjs",
     "check:manifest": "node scripts/check-manifest.mjs",
-    "guardrails": "npm run check:boundaries && npm run check:deps && npm run check:manifest"
+    "guardrails": "npm run check:boundaries && npm run check:deps && npm run check:manifest && npm run check:i18n"
   },
   "jest": {
     "preset": "jest-expo",
@@ -81,7 +82,10 @@
       "\\.web\\.test\\.",
       "\\.ios\\.test\\.",
       "\\.android\\.test\\."
-    ]
+    ],
+    "moduleNameMapper": {
+      "data/firebase$": "<rootDir>/src/data/firebase.ts"
+    }
   },
   "private": true
 }

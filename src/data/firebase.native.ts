@@ -8,12 +8,12 @@ import {
   signInAnonymously, signInWithCredential, signOut,
 } from '@react-native-firebase/auth';
 import type { User } from '@react-native-firebase/auth';
-import { getCrashlytics, recordError, setAttribute } from '@react-native-firebase/crashlytics';
+import { crash as crashlyticsCrash, getCrashlytics, recordError, setAttribute } from '@react-native-firebase/crashlytics';
 import {
   collection, clearPersistence, deleteDoc, doc, getDoc, getDocFromCache,
   getDocFromServer, getDocs, getDocsFromCache, getDocsFromServer,
   getFirestore, limit as qLimit, onSnapshot, orderBy as qOrderBy, query,
-  serverTimestamp, setDoc, Timestamp as FsTimestamp, updateDoc,
+  serverTimestamp, setDoc, terminate, Timestamp as FsTimestamp, updateDoc,
   waitForPendingWrites, where as qWhere, writeBatch,
 } from '@react-native-firebase/firestore';
 import type {
@@ -23,7 +23,7 @@ import type {
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import {
   AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, normalizeAuthError,
-  normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch,
+  normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
 } from './adapter';
 import { GOOGLE_WEB_CLIENT_ID } from './firebaseConfig';
 import type { Timestamp as DomainTimestamp } from './schema/common';
@@ -127,20 +127,24 @@ async function googleIdToken(): Promise<string> {
 }
 
 export function createNativeAdapter(): FirebaseAdapter {
-  const db = getFirestore();
+  // `let` because sign-out terminates the instance before clearing persistence
+  // and then rebuilds it for the next (anonymous) session.
+  let db = getFirestore();
   const a = getAuth();
   let pending = 0;
+  // Conflict flow: the Google id token from a failed link, memory only (OQ-06).
+  let retainedIdToken: string | null = null;
 
-  const mkHandle = (p: Promise<unknown>, ops: number): CommitHandle => {
+  const mkHandle = (p: Promise<unknown>, ops: number, journal?: WriteOpRecord[]): CommitHandle => {
     pending += 1;
     const ack = Promise.resolve(p)
       .catch((e) => { throw normalizeError(e); })
       .then(() => { pending -= 1; }, (e) => { pending -= 1; throw e; });
     ack.catch(() => undefined);
-    return { ops, ack };
+    return { ops, ack, journal };
   };
 
-  const batchMap = new WeakMap<WriteBatch, { batch: FsWriteBatch; ops: number }>();
+  const batchMap = new WeakMap<WriteBatch, { batch: FsWriteBatch; journal: WriteOpRecord[] }>();
 
   return {
     platform: 'native',
@@ -193,13 +197,13 @@ export function createNativeAdapter(): FirebaseAdapter {
 
     batch() {
       const sdk = writeBatch(db);
-      let ops = 0;
+      const journal: WriteOpRecord[] = [];
       const w: WriteBatch = {
-        set: (path, data) => { ops += 1; sdk.set(doc(db, path), encodeWriteData(data) as UpdateData<object>); },
-        update: (path, data) => { ops += 1; sdk.update(doc(db, path), encodeWriteData(data) as UpdateData<object>); },
-        delete: (path) => { ops += 1; sdk.delete(doc(db, path)); },
+        set: (path, data) => { journal.push({ op: 'set', path, data }); sdk.set(doc(db, path), encodeWriteData(data) as UpdateData<object>); },
+        update: (path, data) => { journal.push({ op: 'update', path, data }); sdk.update(doc(db, path), encodeWriteData(data) as UpdateData<object>); },
+        delete: (path) => { journal.push({ op: 'delete', path }); sdk.delete(doc(db, path)); },
       };
-      batchMap.set(w, { batch: sdk, ops });
+      batchMap.set(w, { batch: sdk, journal });
       return w;
     },
 
@@ -207,24 +211,37 @@ export function createNativeAdapter(): FirebaseAdapter {
       const sdk = batchMap.get(b);
       if (!sdk) throw new RepoError('invalid-argument', 'batch not created by this adapter');
       batchMap.delete(b);
-      return mkHandle(sdk.batch.commit(), sdk.ops);
+      return mkHandle(sdk.batch.commit(), sdk.journal.length, sdk.journal);
     },
 
     setDoc(path, data) {
-      return mkHandle(setDoc(doc(db, path), encodeWriteData(data) as UpdateData<object>), 1);
+      return mkHandle(setDoc(doc(db, path), encodeWriteData(data) as UpdateData<object>), 1,
+        [{ op: 'set', path, data: data as Record<string, unknown> }]);
     },
     updateDoc(path, data) {
-      return mkHandle(updateDoc(doc(db, path), encodeWriteData(data) as UpdateData<object>), 1);
+      return mkHandle(updateDoc(doc(db, path), encodeWriteData(data) as UpdateData<object>), 1,
+        [{ op: 'update', path, data: data as Record<string, unknown> }]);
     },
     deleteDoc(path) {
-      return mkHandle(deleteDoc(doc(db, path)), 1);
+      return mkHandle(deleteDoc(doc(db, path)), 1, [{ op: 'delete', path }]);
     },
 
     pendingWriteCount: () => pending,
     waitForPendingWrites: () => waitForPendingWrites(db),
     async clearPersistence() {
-      // Empties the durable cache (settings sign-out, SC-DAT04-04).
-      await clearPersistence(db);
+      // Empties the durable cache on sign-out (SC-DAT04-04, FR-OUT-02). The
+      // client must be terminated first; a fresh instance is created for the
+      // post-sign-out session.
+      try {
+        await terminate(db);
+      } catch {
+        // already terminated — clearPersistence may still succeed
+      }
+      try {
+        await clearPersistence(db);
+      } finally {
+        db = getFirestore();
+      }
     },
 
     // RNFirebase exposes no connectivity event; offline is the normal local-
@@ -261,17 +278,47 @@ export function createNativeAdapter(): FirebaseAdapter {
       const u = a.currentUser;
       if (!u) throw new AuthError('unavailable', 'no signed-in user');
       configureGoogle();
+      let idToken: string | null = null;
       try {
-        const idToken = await googleIdToken();
+        idToken = await googleIdToken();
         // A Google account already used elsewhere cannot be linked (FR-LINK-04).
         const cred = await linkWithCredential(u, GoogleAuthProvider.credential(idToken));
+        retainedIdToken = null;
+        return toAuthUser(cred.user) as AuthUser;
+      } catch (e) {
+        const err = normalizeAuthError(e);
+        // Keep the id token (memory only) so the conflict dialog can sign in
+        // with the same credential without re-prompting (OQ-06).
+        retainedIdToken = err.code === 'credential-already-in-use' ? idToken : null;
+        throw err;
+      }
+    },
+
+    async signInWithRetainedCredential() {
+      if (!retainedIdToken) throw new AuthError('cancelled', 'no retained credential');
+      try {
+        const cred = await signInWithCredential(a, GoogleAuthProvider.credential(retainedIdToken));
+        retainedIdToken = null;
         return toAuthUser(cred.user) as AuthUser;
       } catch (e) {
         throw normalizeAuthError(e);
       }
     },
 
-    signOut: () => signOut(a),
+    discardRetainedCredential() {
+      retainedIdToken = null;
+    },
+
+    async signOut() {
+      // Also release the Google Sign-In session so the next sign-in can pick a
+      // different account (SC-AUTH08-03).
+      try {
+        if (googleConfigured) await GoogleSignin.signOut();
+      } catch {
+        // Google sign-out failure must not block the Firebase sign-out.
+      }
+      await signOut(a);
+    },
 
     reportNonFatal(error, context) {
       // Codes and paths only — amounts, plates, names and notes never reach
@@ -285,6 +332,15 @@ export function createNativeAdapter(): FirebaseAdapter {
         recordError(c, err);
       } catch {
         // Crashlytics itself must never break the app.
+      }
+    },
+
+    testCrash() {
+      // Dev-build smoke check for Crashlytics wiring (SC-OBS05-01).
+      try {
+        crashlyticsCrash(getCrashlytics());
+      } catch {
+        // Never break the app for a diagnostics trigger.
       }
     },
   };

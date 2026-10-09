@@ -93,12 +93,30 @@ export function destVehicleId(srcVehicleId: string): string {
   return destId(srcVehicleId);
 }
 
+export interface ImportOptions {
+  /** Stamped on the destination owner's member record (account merge, DR-02). */
+  ownerName?: string;
+  ownerEmail?: string;
+  /**
+   * Merge semantic (DR-11): entries whose createdByName still equals this
+   * anonymous placeholder are rewritten to `authorName`; real member names are
+   * preserved verbatim.
+   */
+  rewriteAuthorFrom?: string;
+  authorName?: string;
+}
+
 /**
  * Plan an import. Every write is a `set` on a deterministic id; the destination
  * caller becomes the vehicle owner and sole member, and every createdBy /
  * updatedBy is rewritten to them (FR-IMP-04). Dates are preserved verbatim.
  */
-export function planImport(bundle: ExportBundle, destUid: string, importedAt: Timestamp): ImportPlan {
+export function planImport(
+  bundle: ExportBundle,
+  destUid: string,
+  importedAt: Timestamp,
+  opts: ImportOptions = {},
+): ImportPlan {
   const ops: WriteOp[] = [];
   let entryCount = 0;
   let reminderCount = 0;
@@ -107,6 +125,8 @@ export function planImport(bundle: ExportBundle, destUid: string, importedAt: Ti
   for (const v of bundle.vehicles) {
     const dv = destVehicleId(v.id);
     const member: Member = { role: 'owner', joinedAt: importedAt };
+    if (opts.ownerName) member.name = opts.ownerName;
+    if (opts.ownerEmail) member.email = opts.ownerEmail;
     const vehicleDoc: VehicleDoc = {
       ...v.data,
       ownerId: destUid,
@@ -119,7 +139,14 @@ export function planImport(bundle: ExportBundle, destUid: string, importedAt: Ti
     ops.push({ path: `vehicles/${dv}`, data: vehicleDoc as unknown as Record<string, unknown> });
 
     for (const e of v.entries) {
-      const doc = { ...e.data, createdBy: destUid, updatedBy: destUid, schemaVersion: SCHEMA_VERSION };
+      const createdByName =
+        opts.rewriteAuthorFrom && opts.authorName && e.data.createdByName === opts.rewriteAuthorFrom
+          ? opts.authorName
+          : e.data.createdByName;
+      const doc = {
+        ...e.data, createdBy: destUid, updatedBy: destUid, createdByName,
+        schemaVersion: SCHEMA_VERSION,
+      };
       if (!entryDocSchema.safeParse(doc).success) continue;
       ops.push({ path: `vehicles/${dv}/entries/${destId(e.id)}`, data: doc as Record<string, unknown> });
       entryCount += 1;

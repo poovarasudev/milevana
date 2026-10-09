@@ -6,7 +6,7 @@
 
 import type { ZodType } from 'zod';
 import type {
-  CommitHandle, DocSnap, FirebaseAdapter, QuerySnap,
+  CommitHandle, DocSnap, FirebaseAdapter, QuerySnap, RepoErrorCode, Unsubscribe, WriteOpRecord,
 } from '../adapter';
 import { RepoError } from '../adapter';
 import type { DocKind } from '../schema/common';
@@ -23,6 +23,33 @@ export interface MalformedDocInfo {
 }
 
 export type MalformedReporter = (info: MalformedDocInfo) => void;
+
+/**
+ * Settlement event for every adapter write (FND-OBS-02/04). `ok:false` events
+ * carry the normalized code and the commit journal (op kinds + paths, never
+ * document data) so Sync issues can offer Retry and Discard (DR-19).
+ */
+export type WriteEvent =
+  | { ok: true }
+  | { ok: false; code: RepoErrorCode; journal: WriteOpRecord[] };
+
+const writeObservers = new Set<(ev: WriteEvent) => void>();
+
+/** Subscribe to write settlements (Sync issues, quota notices). */
+export function addWriteObserver(cb: (ev: WriteEvent) => void): Unsubscribe {
+  writeObservers.add(cb);
+  return () => writeObservers.delete(cb);
+}
+
+function notifyWrite(ev: WriteEvent): void {
+  for (const cb of writeObservers) {
+    try {
+      cb(ev);
+    } catch {
+      // observers are UI-side; they must never break a write path
+    }
+  }
+}
 
 export class RepoBase {
   constructor(
@@ -84,15 +111,27 @@ export class RepoBase {
    */
   protected async finishWrite(h: CommitHandle): Promise<void> {
     if (this.adapter.awaitWriteAck) {
-      await h.ack;
+      try {
+        await h.ack;
+        notifyWrite({ ok: true });
+      } catch (e) {
+        const code = e instanceof RepoError ? e.code : 'unknown';
+        notifyWrite({ ok: false, code, journal: h.journal ?? [] });
+        throw e;
+      }
       return;
     }
-    h.ack.catch((e) => {
-      this.adapter.reportNonFatal(e instanceof RepoError ? e : new RepoError('unknown'), {
-        stage: 'write-ack',
-        code: e instanceof RepoError ? e.code : 'unknown',
-      });
-    });
+    h.ack.then(
+      () => notifyWrite({ ok: true }),
+      (e) => {
+        const code = e instanceof RepoError ? e.code : 'unknown';
+        notifyWrite({ ok: false, code, journal: h.journal ?? [] });
+        this.adapter.reportNonFatal(e instanceof RepoError ? e : new RepoError('unknown'), {
+          stage: 'write-ack',
+          code,
+        });
+      },
+    );
   }
 }
 

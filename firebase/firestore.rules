@@ -78,10 +78,31 @@ service cloud.firestore {
         && d.schemaVersion is int;
     }
 
-    // Foundation: nobody may change ownership or membership fields.
+    // Foundation: nobody may change ownership or membership fields, except the
+    // DR-02 link-time profile fill below.
     function ownerKeepsMembership() {
       return !request.resource.data.diff(resource.data).affectedKeys()
         .hasAny(['ownerId', 'memberIds', 'members']);
+    }
+
+    // DR-02: when an anonymous account links Google, the owner fills in their
+    // own member record's name/email. Sole-member vehicles only (anonymous
+    // accounts can never share), own record only, name/email keys only, and
+    // role/joinedAt stay untouched.
+    function ownerFillsMemberProfile() {
+      return resource.data.ownerId == uid()
+        && resource.data.memberIds == [uid()]
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        && request.resource.data.members.keys().hasOnly([uid()])
+        && request.resource.data.members[uid()].diff(resource.data.members[uid()])
+            .affectedKeys().hasOnly(['name', 'email'])
+        && request.resource.data.members[uid()].role == 'owner'
+        && request.resource.data.members[uid()].joinedAt == resource.data.members[uid()].joinedAt
+        && (!request.resource.data.members[uid()].keys().hasAny(['name'])
+            || optShort(request.resource.data.members[uid()].name))
+        && (!request.resource.data.members[uid()].keys().hasAny(['email'])
+            || (request.resource.data.members[uid()].email is string
+                && request.resource.data.members[uid()].email.size() <= 320));
     }
 
     // Members may update only lastOdometer, lastOdometerAt and updatedAt.
@@ -108,6 +129,7 @@ service cloud.firestore {
           && ownerKeepsMembership()
           && validVehicle(request.resource.data))
         || (uid() in resource.data.memberIds && memberOdometerUpdate())
+        || (ownerFillsMemberProfile() && validVehicle(request.resource.data))
       );
 
       allow delete: if signedIn() && resource.data.ownerId == uid();
@@ -185,7 +207,10 @@ service cloud.firestore {
           && uid() in vehicleData(vid).memberIds
           && (resource.data.createdBy == uid() || vehicleData(vid).ownerId == uid())
           && request.resource.data.createdBy == resource.data.createdBy
-          && request.resource.data.createdByName == resource.data.createdByName
+          && (request.resource.data.createdByName == resource.data.createdByName
+              // DR-02: linking rewrites the caller's own 'Me' placeholder to
+              // their Google display name. Nothing else may touch the field.
+              || (resource.data.createdBy == uid() && resource.data.createdByName == 'Me'))
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.updatedBy == uid()
           && validEntry(request.resource.data, vehicleData(vid).currency);

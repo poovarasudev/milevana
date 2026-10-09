@@ -2,9 +2,9 @@
 // Runs via `npm run test:emulator` inside `firebase emulators:exec` (see
 // jest.emulator.config.js). Each test user gets a web adapter bound to an
 // authenticated rules context, so the real rules enforce everything.
-import { initializeTestEnvironment, RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { assertFails, initializeTestEnvironment, RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'node:fs';
-import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { createWebAdapter } from '../../firebase.web';
 import type { FirebaseAdapter } from '../../adapter';
 import { createRepos, Repos } from '../index';
@@ -314,6 +314,116 @@ describe('serializer round-trip on the emulator (FND-DAT-08)', () => {
     // Retry: running the same import again is a plain rewrite.
     await runImport(adapterB, plan, (h) => h.ack);
     expect(await rB.entries.list(mine[0].id)).toHaveLength(1);
+  });
+});
+
+describe('link-time identity rewrite (DR-02, FND-AUTH-03)', () => {
+  it('updateMemberProfile fills the sole owner record after linking', async () => {
+    const anon = reposFor('alice');
+    const id = await anon.vehicles.create(VEHICLE_INPUT); // anonymous → no name/email
+    const linked = reposFor('alice', { linked: true });   // same uid, now linked
+    await linked.vehicles.updateMemberProfile(id, 'Alice Google', 'alice@example.com');
+    const v = await linked.vehicles.get(id);
+    expect(v!.members.alice).toMatchObject({
+      role: 'owner', name: 'Alice Google', email: 'alice@example.com',
+    });
+  });
+
+  it('member-profile edits are denied once the vehicle has another member', async () => {
+    const anon = reposFor('alice');
+    const id = await anon.vehicles.create(VEHICLE_INPUT);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'vehicles', id), {
+        'memberIds': ['alice', 'bob'],
+        'members.bob': { role: 'member', joinedAt: { seconds: 1, nanoseconds: 0 } },
+      });
+    });
+    const linked = reposFor('alice', { linked: true });
+    await expect(linked.vehicles.updateMemberProfile(id, 'Alice', null))
+      .rejects.toMatchObject({ code: 'permission-denied' });
+  });
+
+  it('the clause cannot be abused to change roles or joinedAt', async () => {
+    const anon = reposFor('alice');
+    const id = await anon.vehicles.create(VEHICLE_INPUT);
+    const db = env.authenticatedContext('alice').firestore();
+    const cur = (await reposFor('alice').vehicles.get(id))!;
+    await assertFails(updateDoc(doc(db, 'vehicles', id), {
+      members: { alice: { ...cur.members.alice, role: 'editor', name: 'Alice' } },
+    }));
+  });
+
+  it('setAuthorName rewrites only the caller\'s "Me" placeholders', async () => {
+    const anon = reposFor('alice');
+    const id = await anon.vehicles.create(VEHICLE_INPUT);
+    const e1 = await anon.entries.create(id, EXPENSE()); // createdByName 'Me'
+    const before = (await anon.entries.get(id, e1))!;
+
+    const linked = reposFor('alice', { linked: true });
+    const ids = await linked.entries.listPlaceholderAuthored(id);
+    expect(ids).toEqual([e1]);
+    await linked.entries.setAuthorName(id, ids, 'Alice Google');
+    const after = (await linked.entries.get(id, e1))!;
+    expect(after.createdByName).toBe('Alice Google');
+    expect(after.updatedAt).toEqual(before.updatedAt); // DR-02: timestamps untouched
+  });
+
+  it('rules deny rewriting a non-placeholder author name', async () => {
+    const linked = reposFor('alice', { linked: true });
+    const id = await linked.vehicles.create(VEHICLE_INPUT); // member has name/email
+    const eid = await linked.entries.create(id, EXPENSE()); // createdByName 'alice name'
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(db, 'vehicles', id, 'entries', eid), {
+      createdByName: 'Someone Else',
+    }));
+  });
+
+  it('rules deny rewriting another user\'s placeholder', async () => {
+    const anon = reposFor('alice');
+    const id = await anon.vehicles.create(VEHICLE_INPUT);
+    const eid = await anon.entries.create(id, EXPENSE()); // 'Me', createdBy alice
+    // bob cannot even read the vehicle; a crafted write is still denied.
+    const db = env.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(db, 'vehicles', id, 'entries', eid), {
+      createdByName: 'Bob',
+    }));
+  });
+});
+
+describe('vehicle units before/after entries (DR-01)', () => {
+  it('startOdometer adjusts lastOdometer until the first entry lands', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    await r.vehicles.changeUnits(id, { startOdometer: 2000 });
+    let v = (await r.vehicles.get(id))!;
+    expect(v.startOdometer).toBe(2000);
+    expect(v.lastOdometer).toBe(2000);
+
+    await r.entries.create(id, EXPENSE());
+    await expect(r.vehicles.changeUnits(id, { startOdometer: 3000 }))
+      .rejects.toMatchObject({ code: 'invalid-argument' });
+  });
+});
+
+describe('large deletes (DR-14)', () => {
+  it('children beyond one 500-op batch are all removed', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const d = ctx.firestore();
+      for (let chunk = 0; chunk < 3; chunk++) {
+        const wb = writeBatch(d);
+        for (let i = 0; i < 250; i++) {
+          wb.set(doc(d, 'vehicles', id, 'entries', `e${chunk * 250 + i}`), { n: chunk * 250 + i });
+        }
+        await wb.commit();
+      }
+    });
+    await r.vehicles.delete(id);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      expect((await getDocs(collection(ctx.firestore(), 'vehicles', id, 'entries'))).size).toBe(0);
+      expect((await getDocs(collection(ctx.firestore(), 'vehicles'))).size).toBe(0);
+    });
   });
 });
 

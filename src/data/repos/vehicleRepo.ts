@@ -19,6 +19,8 @@ export type VehiclePatch = Partial<
 
 export interface VehicleRecord extends VehicleDoc {
   id: string;
+  /** Local write not yet confirmed by the server (drives the sync icon). */
+  pending: boolean;
 }
 
 export class VehicleRepo extends RepoBase {
@@ -56,9 +58,36 @@ export class VehicleRepo extends RepoBase {
     const out: VehicleRecord[] = [];
     for (const d of snap.docs) {
       const v = this.parse('vehicles', vehicleDocSchema, d, `vehicles/${d.id}`);
-      if (v !== null) out.push({ ...v, id: d.id });
+      if (v !== null) out.push({ ...v, id: d.id, pending: d.hasPendingWrites });
     }
     return out;
+  }
+
+  /** Vehicles where the caller is the owner (conflict counting, link rewrite). */
+  async listOwned(): Promise<VehicleRecord[]> {
+    const uid = this.callerUid();
+    return (await this.listMine()).filter((v) => v.ownerId === uid);
+  }
+
+  /**
+   * DR-02: after an anonymous account links Google, the owner's member record
+   * gains displayName/email. Only the caller's own record may change, and only
+   * name/email — the matching rules clause mirrors that shape. Idempotent.
+   */
+  async updateMemberProfile(vehicleId: string, name: string | null, email: string | null): Promise<void> {
+    const uid = this.callerUid();
+    const cur = await this.mustGet(vehicleId);
+    const member = cur.members[uid];
+    if (!member) throw new RepoError('permission-denied', 'not a member');
+    if (member.name === (name ?? undefined) && member.email === (email ?? undefined)) return;
+    const updated: Member = { ...member };
+    if (name) updated.name = name;
+    if (email) updated.email = email;
+    await this.finishWrite(
+      this.adapter.updateDoc(`vehicles/${vehicleId}`, {
+        members: { ...cur.members, [uid]: updated },
+      }),
+    );
   }
 
   /**
@@ -114,16 +143,26 @@ export class VehicleRepo extends RepoBase {
     await this.finishWrite(this.adapter.updateDoc(`vehicles/${vehicleId}`, data));
   }
 
-  /** Unit/currency change — allowed only while the vehicle has no entries. */
-  async changeUnits(vehicleId: string, patch: Pick<VehicleDoc, 'odometerUnit' | 'currency'>): Promise<void> {
+  /**
+   * Unit/currency/start-odometer change — allowed only while the vehicle has
+   * no entries (DR-01). When startOdometer moves and the vehicle has no
+   * entries, lastOdometer moves with it (it still equals the start reading).
+   */
+  async changeUnits(
+    vehicleId: string,
+    patch: Partial<Pick<VehicleDoc, 'odometerUnit' | 'currency' | 'startOdometer'>>,
+  ): Promise<void> {
     const cur = await this.mustGet(vehicleId);
     if (cur.archived) throw new RepoError('invalid-argument', 'archived vehicle');
     if (await this.hasEntries(vehicleId)) {
       throw new RepoError('invalid-argument', 'units are locked once entries exist');
     }
-    await this.finishWrite(
-      this.adapter.updateDoc(`vehicles/${vehicleId}`, { ...patch, updatedAt: this.adapter.now() }),
-    );
+    const data: Record<string, unknown> = { ...patch, updatedAt: this.adapter.now() };
+    if (patch.startOdometer !== undefined && patch.startOdometer !== cur.startOdometer) {
+      data.lastOdometer = patch.startOdometer;
+      data.lastOdometerAt = this.adapter.now();
+    }
+    await this.finishWrite(this.adapter.updateDoc(`vehicles/${vehicleId}`, data));
   }
 
   async archive(vehicleId: string): Promise<void> {

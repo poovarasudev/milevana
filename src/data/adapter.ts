@@ -85,14 +85,25 @@ export interface QuerySpec {
 
 export type ReadSource = 'default' | 'server' | 'cache';
 
+/** One op inside a committed batch (FND-OBS-04). `data` stays in memory and is
+ * only used to resubmit a rejected write from Sync issues — never logged. */
+export interface WriteOpRecord {
+  op: 'set' | 'update' | 'delete';
+  path: string;
+  data?: Record<string, unknown>;
+}
+
 /**
  * A committed write. `ack` resolves when the server confirms (or rejects with a
  * RepoError). On Android `commit()` returns immediately while `ack` is still
  * pending; on web repositories await `ack` before resolving to the caller.
+ * `journal` records the op paths so a rejected queued write can be surfaced in
+ * Sync issues and retried (DR-19); it never carries document data.
  */
 export interface CommitHandle {
   ops: number;
   ack: Promise<void>;
+  journal?: WriteOpRecord[];
 }
 
 export interface WriteBatch {
@@ -160,12 +171,24 @@ export interface FirebaseAdapter {
   signInWithGoogle(): Promise<AuthUser>;
   /** Link the current (anonymous) account with Google. */
   linkWithGoogle(): Promise<AuthUser>;
+  /**
+   * When `linkWithGoogle` (or `signInWithGoogle` while already signed in)
+   * rejects with `credential-already-in-use`, the Google credential is held in
+   * memory only (never persisted — OQ-06) so the conflict dialog can sign in
+   * with it once the user chooses. Throws 'cancelled' if none is retained.
+   */
+  signInWithRetainedCredential(): Promise<AuthUser>;
+  /** Drop the retained credential — the conflict dialog's Cancel path. */
+  discardRetainedCredential(): void;
   signOut(): Promise<void>;
 
   // --- diagnostics ---
   /** Non-fatal report hook (Crashlytics on native, no-op on web). Carries only
    * codes and paths — never amounts, plates, names or notes (PRV-03). */
   reportNonFatal(error: unknown, context?: Record<string, string>): void;
+  /** Dev-build test crash for the Crashlytics smoke check (SC-OBS05-01);
+   * a no-op on web and safe to call anywhere. */
+  testCrash(): void;
 }
 
 /** Map an SDK error to a normalized RepoError. */

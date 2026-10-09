@@ -1,0 +1,32 @@
+# FND-VER-02 / SC-VER02-01 — first launch → add vehicle → change settings.
+# Run: maestro test .maestro/foundation-first-launch.yaml
+# Requires the dev build installed (appId from app.json) and the Firebase
+# emulator reachable — the anonymous bootstrap needs one network round trip.
+appId: dev.poovarasu.milevana
+name: Foundation — first launch, add vehicle, settings persistence
+---
+- launchApp:
+    clearState: true
+
+# Welcome → add vehicle (AC-F1)
+- assertVisible: "Add your first vehicle"
+- tapOn: "Get started"
+- assertVisible: "New vehicle"
+- inputText: "Maestro Car"          # first editable field is NAME
+- tapOn: "Save vehicle"
+- assertVisible: "Maestro Car"       # dashboard switcher shows the new vehicle
+
+# Change a setting (AC-F5)
+- tapOn: "More"
+- tapOn: "Settings"
+- tapOn: "Distance unit"
+- tapOn: "Miles (mi)"
+- assertVisible: "Miles (mi)"
+- assertVisible: "PREVIEW"           # read-only preview block reflects the change
+
+# Persisted across restart
+- stopApp
+- launchApp
+- tapOn: "More"
+- tapOn: "Settings"
+- assertVisible: "Miles (mi)"

@@ -43,10 +43,26 @@ module.exports = [
     },
   },
   {
-    files: [...ADAPTER_GLOBS, 'src/ui/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    files: [
+      ...ADAPTER_GLOBS,
+      // runtime.ts is the feature layer's lazy handle on the neutral module —
+      // importing `data/firebase` there is the intended indirection.
+      'src/features/runtime.ts',
+      'src/ui/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+    ],
     rules: {
       'no-restricted-imports': 'off',
       'no-restricted-syntax': 'off',
+    },
+  },
+  {
+    // Tests legitimately use jest.mock hoisting and require() inside factories.
+    files: ['**/*.test.{ts,tsx,js}', '**/__tests__/**/*.{ts,tsx,js}'],
+    rules: {
+      'import/first': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 ];

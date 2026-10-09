@@ -4,11 +4,11 @@
 // This file must stay importable in Node for the emulator test suite, so it
 // never imports react-native and guards all window access.
 
-import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
+import { FirebaseApp, FirebaseError, getApps, initializeApp } from 'firebase/app';
 import {
   Auth, browserLocalPersistence, getAuth, GoogleAuthProvider,
-  linkWithPopup, linkWithRedirect, onAuthStateChanged, setPersistence,
-  signInAnonymously, signInWithPopup, signInWithRedirect, signOut, User,
+  linkWithPopup, linkWithRedirect, OAuthCredential, onAuthStateChanged, setPersistence,
+  signInAnonymously, signInWithCredential, signInWithPopup, signInWithRedirect, signOut, User,
 } from 'firebase/auth';
 import {
   collection, connectFirestoreEmulator, doc, DocumentSnapshot, Firestore,
@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import {
   AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, normalizeAuthError,
-  normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch,
+  normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
 } from './adapter';
 import { FIRESTORE_EMULATOR_HOST, firebaseConfig, GOOGLE_WEB_CLIENT_ID } from './firebaseConfig';
 import type { Timestamp as DomainTimestamp } from './schema/common';
@@ -121,17 +121,19 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
   const auth = deps.auth ?? (deps.user === undefined ? getAuth(app) : undefined);
   const fixedUser = deps.user;
   let pending = 0;
+  // Conflict flow: the Google credential from a failed link, memory only (OQ-06).
+  let retainedCredential: OAuthCredential | null = null;
 
-  const mkHandle = (p: Promise<unknown>, ops: number): CommitHandle => {
+  const mkHandle = (p: Promise<unknown>, ops: number, journal?: WriteOpRecord[]): CommitHandle => {
     pending += 1;
     const ack = Promise.resolve(p)
       .catch((e) => { throw normalizeError(e); })
       .then(() => { pending -= 1; }, (e) => { pending -= 1; throw e; });
     ack.catch(() => undefined); // callers observe the failure via handle.ack
-    return { ops, ack };
+    return { ops, ack, journal };
   };
 
-  const batchMap = new WeakMap<WriteBatch, { batch: SdkWriteBatch; ops: number }>();
+  const batchMap = new WeakMap<WriteBatch, { batch: SdkWriteBatch; journal: WriteOpRecord[] }>();
 
   const isBrowser = typeof window !== 'undefined' && typeof window.addEventListener === 'function';
   let online = isBrowser ? window.navigator.onLine : true;
@@ -185,13 +187,13 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
 
     batch() {
       const sdk = writeBatch(db);
-      let ops = 0;
+      const journal: WriteOpRecord[] = [];
       const w: WriteBatch = {
-        set: (path, data) => { ops += 1; sdk.set(doc(db, path), encodeWriteData(data) as Record<string, unknown>); },
-        update: (path, data) => { ops += 1; sdk.update(doc(db, path), encodeWriteData(data) as Record<string, unknown>); },
-        delete: (path) => { ops += 1; sdk.delete(doc(db, path)); },
+        set: (path, data) => { journal.push({ op: 'set', path, data }); sdk.set(doc(db, path), encodeWriteData(data) as Record<string, unknown>); },
+        update: (path, data) => { journal.push({ op: 'update', path, data }); sdk.update(doc(db, path), encodeWriteData(data) as Record<string, unknown>); },
+        delete: (path) => { journal.push({ op: 'delete', path }); sdk.delete(doc(db, path)); },
       };
-      batchMap.set(w, { batch: sdk, ops });
+      batchMap.set(w, { batch: sdk, journal });
       return w;
     },
 
@@ -199,17 +201,19 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
       const sdk = batchMap.get(b);
       if (!sdk) throw new RepoError('invalid-argument', 'batch not created by this adapter');
       batchMap.delete(b);
-      return mkHandle(sdk.batch.commit(), sdk.ops);
+      return mkHandle(sdk.batch.commit(), sdk.journal.length, sdk.journal);
     },
 
     setDoc(path, data) {
-      return mkHandle(setDoc(doc(db, path), encodeWriteData(data) as Record<string, unknown>), 1);
+      return mkHandle(setDoc(doc(db, path), encodeWriteData(data) as Record<string, unknown>), 1,
+        [{ op: 'set', path, data: data as Record<string, unknown> }]);
     },
     updateDoc(path, data) {
-      return mkHandle(updateDoc(doc(db, path), encodeWriteData(data) as Record<string, unknown>), 1);
+      return mkHandle(updateDoc(doc(db, path), encodeWriteData(data) as Record<string, unknown>), 1,
+        [{ op: 'update', path, data: data as Record<string, unknown> }]);
     },
     deleteDoc(path) {
-      return mkHandle(deleteDoc(doc(db, path)), 1);
+      return mkHandle(deleteDoc(doc(db, path)), 1, [{ op: 'delete', path }]);
     },
 
     pendingWriteCount: () => pending,
@@ -278,6 +282,7 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
       const provider = new GoogleAuthProvider();
       try {
         const cred = await linkWithPopup(u, provider);
+        retainedCredential = null;
         return toAuthUser(cred.user) as AuthUser;
       } catch (e) {
         const err = normalizeAuthError(e);
@@ -285,8 +290,29 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
           await linkWithRedirect(u, provider);
           throw new AuthError('redirect-started');
         }
+        // Keep the Google credential (memory only) for the conflict dialog's
+        // Switch paths — it is the only way to sign in without re-prompting.
+        if (err.code === 'credential-already-in-use') {
+          retainedCredential = GoogleAuthProvider.credentialFromError(e as FirebaseError);
+        }
         throw err;
       }
+    },
+
+    async signInWithRetainedCredential() {
+      if (!auth) throw new AuthError('unavailable', 'no auth instance');
+      if (!retainedCredential) throw new AuthError('cancelled', 'no retained credential');
+      try {
+        const cred = await signInWithCredential(auth, retainedCredential);
+        retainedCredential = null;
+        return toAuthUser(cred.user) as AuthUser;
+      } catch (e) {
+        throw normalizeAuthError(e);
+      }
+    },
+
+    discardRetainedCredential() {
+      retainedCredential = null;
     },
 
     async signOut() {
@@ -303,6 +329,10 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
       if (typeof console !== 'undefined') {
         console.warn('[non-fatal]', (error as Error)?.name ?? 'error', (error as Error)?.message ?? '', context ?? {});
       }
+    },
+
+    testCrash() {
+      // No web crash reporting in v1 (OQ-10): deliberately a no-op.
     },
   };
 

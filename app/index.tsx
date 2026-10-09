@@ -1,7 +1,11 @@
+// First-run routing (FND-SHL-01, DR-09): welcome once per uid; afterwards the
+// tabs — which show the "Add your first vehicle" empty state when there is no
+// active vehicle.
+
 import { Redirect } from 'expo-router';
-import { useStore } from '../src/data/store';
+import { useAppStore } from '../src/features/appStore';
 
 export default function Index() {
-  const hasVehicle = useStore((s) => s.vehicles.some((v) => !v.archived));
-  return <Redirect href={hasVehicle ? '/(tabs)' : '/welcome'} />;
+  const welcomeSeen = useAppStore((s) => s.welcomeSeen);
+  return <Redirect href={welcomeSeen ? '/(tabs)' : '/welcome'} />;
 }

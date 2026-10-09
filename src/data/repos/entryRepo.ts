@@ -151,6 +151,31 @@ export class EntryRepo extends RepoBase {
     return total;
   }
 
+  /** Ids of entries still carrying the anonymous 'Me' placeholder (DR-02). */
+  async listPlaceholderAuthored(vehicleId: string): Promise<string[]> {
+    const snap = await this.adapter.getDocs({
+      collection: `vehicles/${vehicleId}/entries`,
+      clauses: [{ kind: 'where', field: 'createdByName', op: '==', value: ANON_AUTHOR_NAME }],
+    });
+    return snap.docs.map((d) => d.id);
+  }
+
+  /**
+   * Rewrite placeholder author names after the anonymous account links Google
+   * (DR-02). Only createdByName changes — the rules clause allows it only on
+   * entries the caller created while anonymous. Batched by 500 and idempotent:
+   * a rerun simply finds the remaining placeholders.
+   */
+  async setAuthorName(vehicleId: string, entryIds: string[], name: string): Promise<void> {
+    for (let i = 0; i < entryIds.length; i += 500) {
+      const b = this.adapter.batch();
+      for (const id of entryIds.slice(i, i + 500)) {
+        b.update(`vehicles/${vehicleId}/entries/${id}`, { createdByName: name });
+      }
+      await this.finishWrite(this.adapter.commit(b));
+    }
+  }
+
   // --- internals -----------------------------------------------------------
 
   private parseWithIds(vehicleId: string, snap: QuerySnap): EntryRecord[] {

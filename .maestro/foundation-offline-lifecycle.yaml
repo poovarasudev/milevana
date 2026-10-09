@@ -1,0 +1,49 @@
+# FND-VER-02 / SC-VER02-02 — airplane-mode vehicle lifecycle (AC-F2).
+# Android only. Adds a vehicle online, then edits, archives, unarchives and
+# deletes it fully offline; reconnecting proves the queued writes apply.
+# `setAirplaneMode` needs Maestro >= 1.39 on Android; if unavailable, toggle
+# airplane mode manually at the marked step and re-run.
+appId: dev.poovarasu.milevana
+name: Foundation — offline vehicle lifecycle
+---
+- launchApp:
+    clearState: true
+
+# Seed one vehicle while online
+- assertVisible: "Add your first vehicle"
+- tapOn: "Get started"
+- inputText: "Offline Car"
+- tapOn: "Save vehicle"
+- assertVisible: "Offline Car"
+
+# ── go offline ──────────────────────────────────────────────────────────
+- setAirplaneMode: enabled   # manual fallback: toggle at this point
+# ─────────────────────────────────────────────────────────────────────────
+
+# Edit (offline write queued)
+- tapOn: "More"
+- tapOn: "Vehicles"
+- tapOn: "Offline Car"
+- assertVisible: "Edit vehicle"
+- inputText: "Offline Car II"
+- tapOn: "Save changes"
+- assertVisible: "Offline Car II"
+
+# Archive → unarchive (both queue offline)
+- tapOn: "Offline Car II"
+- tapOn: "Archive"
+- assertVisible: "Archived"
+- tapOn: "Unarchive"
+
+# Delete with typed-name confirmation
+- tapOn: "Delete"
+- inputText: "offline car ii"   # case/space-insensitive match (DR-14)
+- tapOn: "Delete"
+- assertNotVisible: "Offline Car II"
+
+# ── back online — queued writes flush ───────────────────────────────────
+- setAirplaneMode: disabled  # manual fallback: toggle at this point
+# ─────────────────────────────────────────────────────────────────────────
+# Expected: the deleted vehicle stays gone after sync; no sync-issue banner.
+- assertNotVisible: "Offline Car II"
+- assertNotVisible: "Sync issues"
