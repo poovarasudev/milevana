@@ -8,12 +8,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAppStore } from '../src/features/appStore';
 import { startSession } from '../src/features/session';
 import { initI18n } from '../src/i18n';
-import { ConnectGate, MergeResumeGate, SignInGate } from '../src/ui/gates';
+import { ConfigGate, ConnectGate, MergeResumeGate, SignInGate } from '../src/ui/gates';
 import {
   ConflictOverlay, LinkPromptOverlay, MergeOverlay, SignOutOverlay, SyncIssuesOverlay,
 } from '../src/ui/overlays';
@@ -33,17 +34,20 @@ export default function RootLayout() {
 
   const gate =
     !loaded || phase === 'booting' ? 'booting'
+    : phase === 'config' ? 'config'
     : phase === 'connect' || phase === 'error' ? 'connect'
     : phase === 'signin' ? 'signin'
     : phase === 'merge-resume' ? 'merge'
     : 'ready';
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <PaperProvider theme={paper}>
         <StatusBar style={t.bg === '#0F141B' ? 'light' : mode === 'light' ? 'dark' : 'auto'} />
         <Shell>
           {gate === 'booting' && <View style={{ flex: 1, backgroundColor: t.bg }} />}
+          {gate === 'config' && <ConfigGate />}
           {gate === 'connect' && <ConnectGate />}
           {gate === 'signin' && <SignInGate />}
           {gate === 'merge' && <MergeResumeGate />}
@@ -63,5 +67,6 @@ export default function RootLayout() {
         </Shell>
       </PaperProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

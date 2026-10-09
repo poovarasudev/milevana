@@ -61,3 +61,59 @@ This budget covers Foundation operations only, per the story scope.
 ## Gate status (G2)
 
 DAT-05, DAT-06 and DAT-07 may be marked accepted: the projection passes DR-20.
+
+---
+
+# LOG-01 — Logging quota budget (gate G2, tab 2)
+
+Same method and threshold (DR-20: ≤ 25,000 reads and ≤ 10,000 writes/day at
+500 DAU). The numbers below replace the Foundation model's placeholder
+entry-logging line and add History reads; counted from the repository paths
+in `src/data/repos/entryRepo.ts` and verified by `repos.emulator.test.ts`.
+
+Model: 500 DAU, 2 vehicles each, ~100 lifetime entries per vehicle,
+~6 entries logged/user/day, 2 sessions/day. History loads ALL of a vehicle's
+entries in ONE watch (LD-10) — that is the recommendation this budget
+supports.
+
+## Per-operation counts (Logging)
+
+| Operation | Reads | Writes | Notes |
+| --- | --- | --- | --- |
+| Add entry | 2 | 1–2 | `mustGetVehicle` + rules `vehicleData` get (RK-04); entry `set` + `vehicles.lastOdometer` only when the odometer advances (FR-OFF-01). Trip start odometer never counts — the entry carries the END reading (LD-09). |
+| Edit entry | 3 | 1–2 | `safeGet` entry + rules get + top-odometer query; entry `setDoc` (+ vehicle update only when the max changed). |
+| Delete entry | 3 | 1–2 | `mustGetVehicle` + rules get + top-odometer query; `deleteDoc` (+ vehicle update when the max went away). |
+| History watch attach (warm) | ≈ changed docs | 0 | Snapshot listeners serve the durable cache first; billed reads are deltas only — typically the day's new entries. |
+| History cold open (fresh install / cache miss) | N | 0 | One full scan per vehicle per fresh install — 100 entries → 100 reads. Not a daily cost for an installed app. |
+| Pull-to-refresh | N | 0 | `getDocs(source:'server')` reads all N entries — the only operation whose billed cost scales with list size per call. User-initiated only; the app never auto-refreshes (recommendation below). |
+| Filters + search | 0 | 0 | In-memory over the loaded set (OQ-45) — verified by `filterEntries`/`entryMatchesQuery` tests; no query is re-issued. |
+| Vehicle switch → new watch | ≈ deltas | 0 | Same cache-first attach semantics as History warm attach. |
+
+## Daily projection (500 DAU)
+
+| Driver | Reads/day | Writes/day |
+| --- | --- | --- |
+| Entry creates (6/user/day) | 500 × 6 × 2 = 6,000 | 500 × 6 × 1.5 ≈ 4,500 |
+| Entry edits (1/user/day) | 500 × 3 = 1,500 | 500 × 1.5 ≈ 750 |
+| Entry deletes (0.2/user/day) | 300 | ~120 |
+| Watch deltas (own/other-device writes: ~2 docs × 2 vehicles × 2 sessions) | 4,000 | 0 |
+| Pull-to-refresh (0.1/user/day × 100 docs) | 5,000 | 0 |
+| Cold opens amortized (~2% of DAU reinstall/day × 200 docs) | 2,000 | 0 |
+| Filters/search | 0 | 0 |
+| **Logging total** | **≈ 18,800** | **≈ 5,370** |
+| **Foundation non-entry ops (sessions, vehicles, settings, link prompt)** | **≈ 3,750** | **≈ 150** |
+| **Combined** | **≈ 22,600** | **≈ 5,520** |
+
+## Verdict
+
+**PASS.** ≈22,600 reads (< 25,000, ~90% of budget) and ≈5,520 writes (< 10,000,
+~55%) at 500 DAU. Reads are the binding resource, and the single lever is the
+per-refresh cost N.
+
+**Recommendation (applied in LD-10/FR-OFF-12):** History loads every entry in
+one watch with month grouping client-side (D2), filter and search never touch
+the network, and refresh stays pull-to-refresh only — no automatic re-fetch on
+tab focus or watch re-attach. If a vehicle ever approaches ~5,000 entries,
+revisit paging before raising the budget.
+
+Gate G2 for tab 2 may be marked satisfied.

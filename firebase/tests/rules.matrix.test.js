@@ -200,7 +200,8 @@ describe('entries', () => {
 
   test('create: timestamp and size limits', async () => {
     await assertFails(setDoc(col('alice', 'd1'), entry('alice', { createdAt: future })));
-    await assertFails(setDoc(col('alice', 'd2'), entry('alice', { date: future })));
+    // LD-04: a future entry date is allowed; the client shows a note.
+    await assertSucceeds(setDoc(col('alice', 'd2'), entry('alice', { date: future })));
     await assertFails(setDoc(col('alice', 'd3'), entry('alice', { notes: 'x'.repeat(501) })));
     await assertFails(setDoc(col('alice', 'd4'), entry('alice', { attachments: Array(6).fill(attachment()) })));
     await assertSucceeds(setDoc(col('alice', 'd5'), entry('alice', { attachments: Array(5).fill(attachment()) })));

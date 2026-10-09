@@ -160,7 +160,10 @@ service cloud.firestore {
 
       function validEntry(d, vehicleCurrency) {
         return d.type in ['fuel', 'expense', 'service', 'income', 'trip', 'inspection']
-          && notInFuture(d.date) && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
+          // LD-04: a future entry DATE is allowed (with a client-side note);
+          // only the audit timestamps are checked against the future.
+          && d.date is timestamp
+          && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
           && (!d.keys().hasAny(['odometer']) || (d.odometer is number && d.odometer >= 0))
           && amountOk(d, vehicleCurrency)
           && (hasCategory(d.type)

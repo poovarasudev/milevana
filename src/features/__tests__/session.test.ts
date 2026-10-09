@@ -7,6 +7,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthError } from '../../data/adapter';
 import { resetFirebaseForTests, setFirebaseFactory } from '../../data/firebase';
+import { FirebaseConfigError } from '../../data/firebaseConfig';
 import { localFlags } from '../../data/localFlags';
 import type { VehicleRecord } from '../../data/repos/vehicleRepo';
 import { resetAppStore, useAppStore } from '../appStore';
@@ -73,6 +74,22 @@ test('non-network bootstrap failure shows the error gate, not Connect', async ()
   adapter.setUser(null);
   await flush();
   expect(useAppStore.getState().phase).toBe('error');
+});
+
+test('a failing adapter factory gates on config and names the missing vars', async () => {
+  // Missing/invalid EXPO_PUBLIC_FIREBASE_* on web threw at startup and left a
+  // blank screen; the config gate names the variables instead (runbook link).
+  setFirebaseFactory(() => {
+    throw new FirebaseConfigError(['EXPO_PUBLIC_FIREBASE_API_KEY', 'EXPO_PUBLIC_FIREBASE_APP_ID']);
+  });
+  resetRuntimeForTests();
+  stop = startSession();
+  await flush();
+  const st = useAppStore.getState();
+  expect(st.phase).toBe('config');
+  expect(st.configMissingVars).toEqual([
+    'EXPO_PUBLIC_FIREBASE_API_KEY', 'EXPO_PUBLIC_FIREBASE_APP_ID',
+  ]);
 });
 
 test('web visitor lands on the sign-in gate, never anonymous (FR-WEB-01)', async () => {

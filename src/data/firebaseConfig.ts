@@ -15,6 +15,45 @@ export const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
 };
 
+/** Env var name for each firebaseConfig field, in config-object order. */
+const ENV_NAME: Record<keyof typeof firebaseConfig, string> = {
+  apiKey: 'EXPO_PUBLIC_FIREBASE_API_KEY',
+  authDomain: 'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  projectId: 'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
+  storageBucket: 'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  messagingSenderId: 'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  appId: 'EXPO_PUBLIC_FIREBASE_APP_ID',
+};
+
+export const FIREBASE_ENV_VARS: string[] = Object.values(ENV_NAME);
+
+/**
+ * Thrown when the Firebase client config is missing or invalid so startup can
+ * gate on it instead of crashing into a blank screen. `missing` lists the
+ * EXPO_PUBLIC_* names whose value is empty; it is empty when every variable
+ * is set but init still failed (e.g. auth/invalid-api-key) — check them all.
+ */
+export class FirebaseConfigError extends Error {
+  readonly missing: string[];
+  constructor(missing: string[], cause?: unknown) {
+    super(
+      missing.length
+        ? `Missing Firebase env vars: ${missing.join(', ')}`
+        : 'Firebase configuration invalid',
+    );
+    this.name = 'FirebaseConfigError';
+    this.missing = missing;
+    this.cause = cause;
+  }
+}
+
+/** EXPO_PUBLIC_* names whose effective config value is empty. */
+export function missingFirebaseEnvVars(config: typeof firebaseConfig = firebaseConfig): string[] {
+  return (Object.keys(ENV_NAME) as (keyof typeof firebaseConfig)[])
+    .filter((k) => !config[k])
+    .map((k) => ENV_NAME[k]);
+}
+
 // Google Sign-In (Android): the web OAuth client id is what
 // @react-native-google-signin exchanges for an ID token. The same OAuth client
 // can later request drive.file incrementally (FR-SCAF-04, FR-LINK-06).

@@ -21,7 +21,10 @@ import {
   AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, normalizeAuthError,
   normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
 } from './adapter';
-import { FIRESTORE_EMULATOR_HOST, firebaseConfig, GOOGLE_WEB_CLIENT_ID } from './firebaseConfig';
+import {
+  FIRESTORE_EMULATOR_HOST, FirebaseConfigError, firebaseConfig, GOOGLE_WEB_CLIENT_ID,
+  missingFirebaseEnvVars,
+} from './firebaseConfig';
 import type { Timestamp as DomainTimestamp } from './schema/common';
 
 export interface WebAdapterDeps {
@@ -341,16 +344,27 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
 
 let singleton: FirebaseAdapter | null = null;
 
-/** Lazily created default adapter (env config); emulator hookup is dev-only. */
+/**
+ * Lazily created default adapter (env config); emulator hookup is dev-only.
+ * A missing/invalid EXPO_PUBLIC_FIREBASE_* surfaces as FirebaseConfigError so
+ * startup can show the config gate instead of a blank page.
+ */
 export function getFirebase(): FirebaseAdapter {
   if (!singleton) {
-    const app = getApps()[0] ?? initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    if (FIRESTORE_EMULATOR_HOST) {
-      const [host, port] = FIRESTORE_EMULATOR_HOST.split(':');
-      connectFirestoreEmulator(db, host, Number(port));
+    const missing = missingFirebaseEnvVars();
+    if (missing.length > 0) throw new FirebaseConfigError(missing);
+    try {
+      const app = getApps()[0] ?? initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      if (FIRESTORE_EMULATOR_HOST) {
+        const [host, port] = FIRESTORE_EMULATOR_HOST.split(':');
+        connectFirestoreEmulator(db, host, Number(port));
+      }
+      singleton = createWebAdapter({ app, firestore: db });
+    } catch (e) {
+      // e.g. auth/invalid-api-key from getAuth — report as a config problem
+      throw e instanceof FirebaseConfigError ? e : new FirebaseConfigError([], e);
     }
-    singleton = createWebAdapter({ app, firestore: db });
   }
   return singleton;
 }

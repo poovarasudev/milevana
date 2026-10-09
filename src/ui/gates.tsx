@@ -4,7 +4,8 @@
 // conflict frames in docs/design/Milevana-App-v2.dc.html.
 
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Card, T } from './kit';
+import { FIREBASE_ENV_VARS } from '../data/firebaseConfig';
+import { Button, Card, Icon, T } from './kit';
 import { useTheme } from './theme';
 import { useAppStore } from '../features/appStore';
 import { retryBootstrap } from '../features/session';
@@ -48,6 +49,37 @@ export function ConnectGate() {
           </View>
         </Card>
       </View>
+    </Center>
+  );
+}
+
+/**
+ * Firebase env config missing or invalid (EXPO_PUBLIC_FIREBASE_*). Named
+ * variables plus the runbook pointer — replaces the old blank white page.
+ */
+export function ConfigGate() {
+  const th = useTheme();
+  const missing = useAppStore((s) => s.configMissingVars);
+  const vars = missing.length > 0 ? missing : FIREBASE_ENV_VARS;
+  return (
+    <Center>
+      <Card style={{ paddingVertical: 28, gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Icon name="wrench-outline" color={th.danger} />
+          <T size={20} weight="semi">{t('config.title')}</T>
+        </View>
+        <T size={14} color={th.muted}>
+          {missing.length > 0 ? t('config.missing') : t('config.invalid')}
+        </T>
+        <View style={{ gap: 4 }}>
+          {vars.map((v) => (
+            <T key={v} size={13} weight="semi" color={th.danger} style={{ fontFamily: undefined, fontVariant: ['tabular-nums'] }}>
+              {v}
+            </T>
+          ))}
+        </View>
+        <T size={13} color={th.muted}>{t('config.docs')}</T>
+      </Card>
     </Center>
   );
 }

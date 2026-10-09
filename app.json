@@ -46,7 +46,8 @@
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin",
-      "@react-native-firebase/crashlytics"
+      "@react-native-firebase/crashlytics",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

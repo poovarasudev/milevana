@@ -89,6 +89,27 @@ export function decimalToMinor(value: number | string, currency: string): number
   return Number(out);
 }
 
+/**
+ * Form input → minor units: digits only, up to 12 integer digits (LD-03),
+ * decimals rounded half-up. Returns undefined when empty, malformed or
+ * non-positive — use `allowZero` for labour/discount/zero-cost service lines.
+ */
+export function parseMinor(
+  text: string,
+  currency: string,
+  opts: { allowZero?: boolean } = {},
+): number | undefined {
+  const s = text.trim();
+  if (!/^\d{1,12}(\.\d+)?$/.test(s)) return undefined;
+  try {
+    const m = decimalToMinor(s, currency);
+    if (opts.allowZero ? m < 0 : m <= 0) return undefined;
+    return m;
+  } catch {
+    return undefined;
+  }
+}
+
 const SYMBOLS: Record<string, string> = {
   INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', KRW: '₩',
   RUB: '₽', BRL: 'R$', TRY: '₺', ILS: '₪', THB: '฿', VND: '₫', PHP: '₱',

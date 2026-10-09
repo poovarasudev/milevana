@@ -21,12 +21,19 @@ export interface EntryInput {
   attachments?: AttachmentDoc[];
 }
 
-export type EntryPatch = Partial<Omit<EntryInput, 'type' | 'attachments'>> & {
-  attachments?: AttachmentDoc[];
+/**
+ * Patch for edit: `undefined` leaves a field alone, `null` removes it from
+ * the stored document (update replaces the whole doc), anything else sets it.
+ */
+export type EntryPatch = {
+  [K in keyof Omit<EntryInput, 'type'>]?: EntryInput[K] | null;
 };
 
 export interface EntryRecord extends ParsedEntryDoc {
   id: string;
+  /** Snapshot metadata: this document has writes not yet acknowledged by the
+   * server — renders the "waiting to sync" icon (FR-OFF-03). */
+  pending: boolean;
 }
 
 export class EntryRepo extends RepoBase {
@@ -38,24 +45,38 @@ export class EntryRepo extends RepoBase {
     return this.parse('entries', entryDocSchema, snap, path);
   }
 
-  async list(vehicleId: string, limit = 200): Promise<EntryRecord[]> {
+  /** Newest-first list. No limit by default — History loads all of a
+   *  vehicle's entries once (LD-10); callers that need a cap pass it. */
+  async list(vehicleId: string, limit?: number): Promise<EntryRecord[]> {
     const snap = await this.adapter.getDocs({
       collection: `vehicles/${vehicleId}/entries`,
       clauses: [
         { kind: 'orderBy', field: 'date', direction: 'desc' },
-        { kind: 'limit', n: limit },
+        ...(limit !== undefined ? [{ kind: 'limit', n: limit } as const] : []),
       ],
     });
     return this.parseWithIds(vehicleId, snap);
   }
 
-  watch(vehicleId: string, next: (entries: EntryRecord[]) => void, limit = 200, opts: WatchOptions = {}): () => void {
+  /** Pull-to-refresh: force a server read and return the fresh set (FR-OFF-12). */
+  async refresh(vehicleId: string): Promise<EntryRecord[]> {
+    const snap = await this.adapter.getDocs(
+      {
+        collection: `vehicles/${vehicleId}/entries`,
+        clauses: [{ kind: 'orderBy', field: 'date', direction: 'desc' }],
+      },
+      'server',
+    );
+    return this.parseWithIds(vehicleId, snap);
+  }
+
+  watch(vehicleId: string, next: (entries: EntryRecord[]) => void, limit?: number, opts: WatchOptions = {}): () => void {
     return this.adapter.onQuery(
       {
         collection: `vehicles/${vehicleId}/entries`,
         clauses: [
           { kind: 'orderBy', field: 'date', direction: 'desc' },
-          { kind: 'limit', n: limit },
+          ...(limit !== undefined ? [{ kind: 'limit', n: limit } as const] : []),
         ],
       },
       (snap: QuerySnap) => next(this.parseWithIds(vehicleId, snap)),
@@ -119,7 +140,9 @@ export class EntryRepo extends RepoBase {
     const vehicle = await this.mustGetVehicle(vehicleId);
     const merged: Record<string, unknown> = { ...cur, updatedBy: uid, updatedAt: this.adapter.now() };
     for (const [k, v] of Object.entries(patch)) {
-      if (v !== undefined) merged[k] = v;
+      if (v === undefined) continue;
+      if (v === null) delete merged[k];
+      else merged[k] = v;
     }
     this.assertValid(merged, vehicle);
     await this.finishWrite(this.adapter.setDoc(path, merged));
@@ -182,7 +205,7 @@ export class EntryRepo extends RepoBase {
     const out: EntryRecord[] = [];
     for (const d of snap.docs) {
       const v = this.parse('entries', entryDocSchema, d, `vehicles/${vehicleId}/entries/${d.id}`);
-      if (v !== null) out.push({ ...v, id: d.id });
+      if (v !== null) out.push({ ...v, id: d.id, pending: d.hasPendingWrites });
     }
     return out;
   }

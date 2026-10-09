@@ -7,10 +7,12 @@ import { create } from 'zustand';
 import type { AuthUser, WriteOpRecord } from '../data/adapter';
 import type { MalformedDocInfo } from '../data/repos/base';
 import type { UserDoc } from '../data/schema/user';
+import type { EntryRecord } from '../data/repos/entryRepo';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 
 export type Phase =
   | 'booting' // auth listener not yet fired
+  | 'config' // Firebase env config missing/invalid — names the EXPO_PUBLIC_* vars
   | 'connect' // no session, offline (native first launch) — "Connect to get started"
   | 'signin' // web signed-out visitor — Google sign-in screen
   | 'error' // sign-in failed with a non-network error — Retry offered
@@ -38,6 +40,8 @@ export interface MergeState {
 
 interface AppState {
   phase: Phase;
+  /** EXPO_PUBLIC_FIREBASE_* names whose value is missing/invalid (config gate). */
+  configMissingVars: string[];
   /** Bumped when the signed-in uid changes so screens can reset local state. */
   sessionSeq: number;
   user: AuthUser | null;
@@ -45,6 +49,13 @@ interface AppState {
   /** Latest watchMine snapshot — read model only. */
   vehicles: VehicleRecord[];
   vehiclesLoaded: boolean;
+  /** Latest entries watch snapshot for `entriesVehicleId` — read model only. */
+  entries: EntryRecord[];
+  entriesVehicleId: string | null;
+  entriesArrived: boolean;
+  /** Rows hidden inside their 5-second Undo window (LD-12). No write has
+   * happened yet — undo simply unhides. */
+  pendingDeletes: Record<string, { vehicleId: string; entry: EntryRecord }>;
   online: boolean;
   quotaPaused: boolean;
   /** Unsynced local changes (pending docs ∪ in-flight commits). */
@@ -88,11 +99,16 @@ interface AppState {
 
 const initial: Omit<AppState, 'set'> = {
   phase: 'booting',
+  configMissingVars: [],
   sessionSeq: 0,
   user: null,
   userDoc: null,
   vehicles: [],
   vehiclesLoaded: false,
+  entries: [],
+  entriesVehicleId: null,
+  entriesArrived: false,
+  pendingDeletes: {},
   online: true,
   quotaPaused: false,
   pendingChanges: 0,

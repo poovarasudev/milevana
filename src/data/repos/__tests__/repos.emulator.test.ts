@@ -427,6 +427,168 @@ describe('large deletes (DR-14)', () => {
   });
 });
 
+// --- Logging entry shapes (LOG-05..14) ----------------------------------------
+// Every type the forms write, plus edit-clear and cross-member authority.
+
+const FUEL = {
+  type: 'fuel' as const, date: nowTimestamp(), odometer: 2000,
+  amount: { minor: 600000, currency: 'INR' },
+  details: {
+    fuelType: 'petrol', quantity: 40, quantityUnit: 'L',
+    pricePerUnitMilli: 150000, fullTank: true, missedPrevious: false,
+    stationName: 'Shell Anna Nagar',
+  },
+};
+
+const CHARGE = {
+  type: 'fuel' as const, date: nowTimestamp(), odometer: 2100,
+  amount: { minor: 18000, currency: 'INR' },
+  details: {
+    fuelType: 'electric', quantity: 12, quantityUnit: 'kWh',
+    pricePerUnitMilli: 15000, fullTank: true, missedPrevious: false,
+    chargingLocation: 'home',
+  },
+};
+
+const SERVICE = {
+  type: 'service' as const, date: nowTimestamp(), odometer: 2200,
+  amount: { minor: 13000, currency: 'INR' }, category: 'Engine oil',
+  details: {
+    lines: [{ id: 'line-1', serviceType: 'engine_oil', costMinor: 10000 }],
+    labourMinor: 5000, discountMinor: 2000,
+  },
+};
+
+const INCOME = {
+  type: 'income' as const, date: nowTimestamp(),
+  amount: { minor: 34000, currency: 'INR' }, category: 'Ride-hailing',
+  details: { platform: 'Uber' },
+};
+
+const TRIP = {
+  type: 'trip' as const, date: nowTimestamp(), odometer: 1050,
+  details: {
+    startAt: { seconds: nowTimestamp().seconds - 3600, nanoseconds: 0 },
+    endAt: nowTimestamp(), startOdometer: 1000, endOdometer: 1050,
+    distance: 50, from: 'Home', to: 'Office', purpose: 'business',
+    ratePerUnitMilli: 50000, reimbursementMinor: 2500,
+  },
+};
+
+describe('logging entry shapes (LOG-05..10)', () => {
+  it('fuel round-trips details; a fuel entry may not carry a category (rules)', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    const eid = await r.entries.create(id, FUEL);
+    const e = await r.entries.get(id, eid);
+    expect(e!.details).toMatchObject({ fuelType: 'petrol', quantity: 40, stationName: 'Shell Anna Nagar' });
+    // A crafted fuel create with a category is denied by the rules.
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, 'vehicles', id, 'entries', 'crafted'), {
+      ...FUEL, category: 'x', attachments: [], uploaderUids: [],
+      createdBy: 'alice', createdByName: 'Me', updatedBy: 'alice',
+      createdAt: nowTimestamp(), updatedAt: nowTimestamp(), schemaVersion: 1,
+    }));
+  });
+
+  it('electric charge stores kWh and chargingLocation', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    const eid = await r.entries.create(id, CHARGE);
+    expect((await r.entries.get(id, eid))!.details).toMatchObject({
+      fuelType: 'electric', quantityUnit: 'kWh', chargingLocation: 'home',
+    });
+  });
+
+  it('service stores lines + labour + discount; income stores platform', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    const sid = await r.entries.create(id, SERVICE);
+    const s = await r.entries.get(id, sid);
+    expect(s!.details).toMatchObject({
+      lines: [{ id: 'line-1', serviceType: 'engine_oil', costMinor: 10000 }],
+      labourMinor: 5000, discountMinor: 2000,
+    });
+    const iid = await r.entries.create(id, INCOME);
+    expect((await r.entries.get(id, iid))!.details).toEqual({ platform: 'Uber' });
+  });
+
+  it('trip stores its details with no amount or category', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    const tid = await r.entries.create(id, TRIP);
+    const tr = await r.entries.get(id, tid);
+    expect(tr!.amount).toBeUndefined();
+    expect(tr!.category).toBeUndefined();
+    expect(tr!.details).toMatchObject({
+      startOdometer: 1000, endOdometer: 1050, distance: 50,
+      purpose: 'business', reimbursementMinor: 2500,
+    });
+  });
+});
+
+describe('entry edit semantics (LOG-13)', () => {
+  it('null clears an optional stored field; undefined leaves it alone', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    const eid = await r.entries.create(id, { ...EXPENSE(), notes: 'n', odometer: 1300 });
+    await r.entries.update(id, eid, { notes: null, odometer: undefined });
+    const e = await r.entries.get(id, eid);
+    expect(e!.notes).toBeUndefined();
+    expect(e!.odometer).toBe(1300);
+  });
+
+  it('trips move lastOdometer only via the end reading; delete recomputes', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT); // start 1000
+    const tid = await r.entries.create(id, TRIP);      // odometer = 1050
+    expect((await r.vehicles.get(id))!.lastOdometer).toBe(1050);
+    await r.entries.delete(id, tid);
+    expect((await r.vehicles.get(id))!.lastOdometer).toBe(1000);
+  });
+
+  it('owner edits a member\'s entry; the member cannot edit another\'s (LD-13)', async () => {
+    const rA = reposFor('alice');
+    const id = await rA.vehicles.create(VEHICLE_INPUT);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'vehicles', id), {
+        memberIds: ['alice', 'bob'],
+        'members.bob': { role: 'member', joinedAt: { seconds: 1, nanoseconds: 0 } },
+      });
+    });
+    const rB = reposFor('bob');
+    const bobsEntry = await rB.entries.create(id, EXPENSE());
+    const alicesEntry = await rA.entries.create(id, EXPENSE());
+    // owner edits member's entry
+    await rA.entries.update(id, bobsEntry, { notes: 'owner fix' });
+    expect((await rA.entries.get(id, bobsEntry))!.notes).toBe('owner fix');
+    // member cannot edit or delete another member's entry
+    await expect(rB.entries.update(id, alicesEntry, { notes: 'nope' }))
+      .rejects.toMatchObject({ code: 'permission-denied' });
+    await expect(rB.entries.delete(id, alicesEntry))
+      .rejects.toMatchObject({ code: 'permission-denied' });
+    // owner may delete it
+    await rA.entries.delete(id, alicesEntry);
+    expect(await rA.entries.get(id, alicesEntry)).toBeNull();
+  });
+
+  it('malformed entries are skipped and reported (AC-D12)', async () => {
+    const r = reposFor('alice');
+    const id = await r.vehicles.create(VEHICLE_INPUT);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'vehicles', id, 'entries', 'bad'), {
+        type: 'expense', date: 'not-a-timestamp',
+      });
+    });
+    const malformed: MalformedDocInfo[] = [];
+    const r2 = createRepos(adapterFor('alice'), (i) => malformed.push(i));
+    const list = await r2.entries.list(id);
+    expect(list.find((e) => e.id === 'bad')).toBeUndefined();
+    expect(malformed).toHaveLength(1);
+    expect(malformed[0]).toMatchObject({ kind: 'entries', id: 'bad', code: 'invalid' });
+  });
+});
+
 describe('platform write semantics', () => {
   it('web adapter awaits server ack (awaitWriteAck)', async () => {
     const adapter = adapterFor('alice');

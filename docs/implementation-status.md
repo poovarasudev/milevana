@@ -54,20 +54,43 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | FND-VER-01 | Done | `docs/quota-budget.md` | Projection vs DR-20 threshold | PASS at 500 DAU (≈7.8k reads / ≈7.2k writes vs 25k/10k). Counts are code-path-derived and batching emulator-verified; emulator request-log metering is owner-side if tighter numbers are wanted. G2 satisfied → DAT-05/06/07 acceptable. |
 | FND-VER-02 | Partial | `.maestro/foundation-first-launch.yaml`, `.maestro/foundation-offline-lifecycle.yaml`, `docs/foundation-verification.md` | Component + unit + emulator suites | Flows and checklist are authored; they need a dev build + real device run (no Android toolchain in this env). Manual checklist run record left blank for the owner. |
 
+## Phase 2 — Logging (entries)
+
+| Story | Status | Implementing files | Covering tests | Deviations / assumptions |
+|-------|--------|--------------------|----------------|--------------------------|
+| Carryover: web config gate | Done | `src/data/firebaseConfig.ts` (`FirebaseConfigError`, missing-var list), `src/data/firebase.web.ts` (init guarded), `src/features/session.ts` (config phase), `src/features/appStore.ts`, `src/ui/gates.tsx` (full-screen error → runbook) | `src/data/__tests__/firebaseConfig.test.ts`, `src/features/__tests__/session.test.ts` | Missing/invalid `EXPO_PUBLIC_FIREBASE_*` renders a named-variable error pointing at `docs/firebase-setup-runbook.md` instead of a blank page. |
+| LOG-01 | Done | `docs/quota-budget.md` (Logging section appended) | Projection vs DR-20 | PASS at 500 DAU: ≈22,600 reads / ≈5,520 writes vs 25k/10k. Recommendation applied: History attaches one watch over all entries, filter/search are in-memory only, refresh is pull-only — no auto re-fetch. |
+| LOG-02 | Done | `src/domain/fuel.ts` (two-of-three solver, milli-unit price, input-state tracking, mileage between same-fuel full fills, `missedPrevious` suppression, EV km/kWh, CNG km/kg, hours → none) | `src/domain/__tests__/fuel.test.ts` | Integer milli-minor units throughout (₹1.50 → 150000). Separate mileage per fuel for bi-fuel vehicles. |
+| LOG-03 | Done | `src/domain/entries.ts` (service total = lines + labour − discount floored ≥0, trip distance/reimbursement, odometer sanity check, category/service-type lists, `EntryPatch` null-clears semantics) | `src/domain/__tests__/entries.test.ts` | Odometer warnings are non-blocking both directions (lower/higher than neighbours). |
+| LOG-04 | Done | `src/ui/entry/EntryShell.tsx`, `src/ui/entry/fields.tsx`, `src/ui/DateTimeField.tsx`, `src/ui/entry/EntryForm.tsx` (dispatcher), `app/entry/[type].tsx`, `app/add.tsx` wiring | `src/ui/__tests__/entryForms.test.tsx` (shell rows), emulator batch test (`lastOdometer` in same write) | Inspection stays a placeholder tile. Save errors render inside the form scroll area. Web disables Save offline. |
+| LOG-05 | Done | `src/ui/entry/FuelForm.tsx`, `src/domain/fuel.ts` | `entryForms.test.tsx` (fuel create/edit), `repos.emulator.test.ts` fuel-details block | Fuel-specific unit defaults; live mileage preview; full-tank default on; optional station; required odometer. |
+| LOG-06 | Done | `src/ui/entry/FuelForm.tsx` (`electric` branch: kWh, home/public location, "Full charge") | `entryForms.test.tsx`, emulator EV block | Same form as LOG-05 gated on fuel type; location home/public per DR-03 canonical labels. |
+| LOG-07 | Done | `src/ui/entry/MoneyForm.tsx` (`expense` branch), category chips + Other→typed text | `entryForms.test.tsx`, emulator expense block | Positive amount required; odometer optional. |
+| LOG-08 | Done | `src/ui/entry/ServiceForm.tsx` (1–20 lines, type picker, Other label, labour, discount, computed total) | `entryForms.test.tsx`, emulator service block | Total = lines + labour − discount floored at 0; validation blocks missing type, missing Other label, invalid costs. |
+| LOG-09 | Done | `src/ui/entry/MoneyForm.tsx` (`income` branch: category, amount, platform) | `entryForms.test.tsx`, emulator income block | Odometer optional; platform free text. |
+| LOG-10 | Done | `src/ui/entry/TripForm.tsx` (start/end date+odometer, from/to, business/personal, rate, distance, reimbursement) | `entryForms.test.tsx`, emulator trip block | Entry date = trip start; end odometer is the entry-level odometer driving `lastOdometer`; no entry-level amount. |
+| LOG-11 | Done | `app/(tabs)/history.tsx`, `src/ui/HistoryList.tsx`, `src/ui/SwipeRow.tsx`, `src/features/entries.ts` (watch), `src/data/repos/entryRepo.ts` (pending flag, server refresh) | `entryForms.test.tsx` (history rows), emulator malformed-entry block | Month grouping; pending-sync icon; rejected-write warning state; "N entries couldn't be shown"; empty state; pull-to-refresh does a `server` read. |
+| LOG-12 | Done | `HistoryList.tsx` (`filterEntries`, `entryMatchesQuery`, type chips, date-from/to pickers) | `entries.test.ts` (domain), `entryForms.test.tsx` | In-memory only — zero additional reads. Search covers notes, category, service line labels/types, station, platform, trip from/to; amounts never match. |
+| LOG-13 | Done | `EntryForm.tsx` edit mode, `entryRepo.update` (patch + `lastOdometer` recompute), `canEditEntry` | `entryForms.test.tsx` (edit seeding), emulator edit/authority block | Type immutable on edit; date editable; creator or vehicle owner can edit; archived → read-only. |
+| LOG-14 | Done | `features/entries.ts` (5 s Undo window, background flush), `SwipeRow.tsx`, History snackbar, `entryRepo.delete` | `features/__tests__/entries.test.ts`, emulator delete + `lastOdometer` recompute block | Row hides immediately, server delete on timer expiry; app teardown commits pending deletes; owner can delete member entries. |
+| LOG-15 | Partial | `.maestro/logging-airplane-mode.yaml`, `docs/logging-verification.md`, stable `testID`s on all form fields | Flow authored; component + emulator suites | Android Maestro run needs a dev build + device (no Android toolchain here) — same caveat as FND-VER-02. Manual checklist rows left blank for the owner. |
+
 ## Owner-only items
 
 - Real Firebase config values (`EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — placeholders in `.env.example`; runbook: `docs/firebase-setup-runbook.md`.
 - `google-services.json` (Android) — not committed; local file expected, documented in runbook.
 - Firestore location choice, OAuth consent/client IDs, Play Console steps, DNS for `milevana.poovarasu.dev`, production rules deploy — all owner steps, documented in runbook.
 - Native adapter compile verification on a real Android build (this env has no Android toolchain; `tsc` passes against RNFirebase v26 modular types).
+- Android device runs for all Maestro flows (Foundation + `.maestro/logging-airplane-mode.yaml`) and the manual checklists in `docs/foundation-verification.md` / `docs/logging-verification.md` — needs a dev build and device.
+- Firestore rules deploy: `e.date` is now allowed in the future per LD-04 — deploy the updated `firebase/firestore.rules` before clients rely on future-dated entries.
 
 ## Verification (last run, this environment)
 
 - `npx tsc --noEmit` — clean.
 - `npx eslint .` — clean (0 errors, 0 warnings).
-- `npm test` — 13 suites, 120 tests passed (unit + component + i18n-scanner).
-- Firestore rules emulator (`npm --prefix firebase test` via `emulators:exec`) — 3 suites, 34 tests passed.
-- Repository emulator (`npm run test:emulator` via `emulators:exec`) — 1 suite, 32 tests passed.
+- `npm test` — 18 suites, 199 tests passed (unit + component + i18n-scanner).
+- Firestore rules emulator (`cd firebase && npx firebase emulators:exec --only firestore --project demo-milevana "npx jest --runInBand"`) — 3 suites, 34 tests passed.
+- Repository emulator (same wrapper around `npm run test:emulator`) — 1 suite, 40 tests passed.
 - `npm run guardrails` — boundaries, deps, manifest, i18n scanner all pass.
 - `npx expo export --platform web` — succeeds.
 

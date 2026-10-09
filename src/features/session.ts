@@ -9,10 +9,12 @@
 //    data" until retried or discarded (FR-MERGE-10).
 
 import { AuthError, AuthUser, RepoError } from '../data/adapter';
+import { FirebaseConfigError, missingFirebaseEnvVars } from '../data/firebaseConfig';
 import { localFlags } from '../data/localFlags';
 import type { MalformedDocInfo } from '../data/repos/base';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
+import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
 import { syncEntryWatch, stopEntryWatch } from './linkPrompt';
 import { adapter, getRepos, setMalformedSink } from './runtime';
 import { reportNonFatal } from './reporting';
@@ -21,6 +23,8 @@ import { deviceLanguage, i18n, initI18n, resolveLocale } from '../i18n';
 
 let lifecycleStops: (() => void)[] = [];
 let sessionStops: (() => void)[] = [];
+let entriesWatchStop: (() => void) | null = null;
+let entriesWatchId: string | null = null;
 let started = false;
 let sessionToken = 0;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -34,16 +38,25 @@ export function startSession(): () => void {
   started = true;
   setMalformedSink(reportMalformedDoc);
   lifecycleStops.push(installWriteObserver());
-  lifecycleStops.push(
-    adapter().onAuthStateChanged((user) => {
-      void handleAuthChange(user);
-    }),
-  );
-  lifecycleStops.push(
-    adapter().onConnectivityChanged((online) => {
-      useAppStore.setState({ online });
-    }),
-  );
+  lifecycleStops.push(installDeleteFlush()); // LD-12: backgrounding commits deletes
+  try {
+    lifecycleStops.push(
+      adapter().onAuthStateChanged((user) => {
+        void handleAuthChange(user);
+      }),
+    );
+    lifecycleStops.push(
+      adapter().onConnectivityChanged((online) => {
+        useAppStore.setState({ online });
+      }),
+    );
+  } catch (e) {
+    // Missing/invalid Firebase env config (web EXPO_PUBLIC_FIREBASE_*) must not
+    // leave a blank screen — the config gate names the variables.
+    const missing =
+      e instanceof FirebaseConfigError ? e.missing : missingFirebaseEnvVars();
+    useAppStore.setState({ phase: 'config', configMissingVars: missing });
+  }
   return () => {
     started = false;
     if (connectTimer) {
@@ -60,6 +73,20 @@ function teardownSession(): void {
   sessionStops.forEach((s) => s());
   sessionStops = [];
   stopEntryWatch();
+  entriesWatchStop?.();
+  entriesWatchStop = null;
+  entriesWatchId = null;
+  commitPendingDeletes(); // LD-12: leaving mid-window commits the deletes
+}
+
+/** History read-model watch follows the selected vehicle (LOG-11, LD-10). */
+function syncSelectedEntriesWatch(): void {
+  const vid = useAppStore.getState().selectedVehicleId;
+  if (vid === entriesWatchId) return;
+  entriesWatchStop?.();
+  entriesWatchStop = null;
+  entriesWatchId = vid;
+  if (vid) entriesWatchStop = startEntriesWatch(vid);
 }
 
 /** Sign-out pre-step: stop watchers and invalidate in-flight session work so
@@ -70,6 +97,10 @@ export function pauseSession(): void {
   useAppStore.setState({
     vehicles: [],
     vehiclesLoaded: false,
+    entries: [],
+    entriesVehicleId: null,
+    entriesArrived: false,
+    pendingDeletes: {},
     userDoc: null,
     selectedVehicleId: null,
     reportsAllVehicles: false,
@@ -103,6 +134,10 @@ async function handleAuthChange(user: AuthUser | null): Promise<void> {
       userDoc: null,
       vehicles: [],
       vehiclesLoaded: false,
+      entries: [],
+      entriesVehicleId: null,
+      entriesArrived: false,
+      pendingDeletes: {},
       selectedVehicleId: null,
       reportsAllVehicles: false,
       mru: [],
@@ -308,6 +343,7 @@ export function handleVehicleList(list: VehicleRecord[]): void {
     accessLost: st.accessLost || accessLost,
   });
   syncEntryWatch(list);
+  syncSelectedEntriesWatch();
   recomputePending();
 }
 
@@ -331,6 +367,7 @@ export async function selectVehicle(vehicleId: string): Promise<void> {
   const uid = st.user?.uid;
   const mru = uid ? await localFlags.pushMru(uid, vehicleId) : st.mru;
   useAppStore.setState({ selectedVehicleId: vehicleId, mru, reportsAllVehicles: false });
+  syncSelectedEntriesWatch();
 }
 
 /** "All vehicles" affects Reports only; other tabs keep the single selection. */

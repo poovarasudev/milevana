@@ -1,0 +1,129 @@
+# LOG-15 / TS-06 — airplane-mode logging. Android only.
+# Adds a vehicle while online, logs one of every entry type in airplane mode
+# (fuel, EV charge, expense, service, income, trip), then reconnects and
+# checks the entries are on the server.
+# `setAirplaneMode` needs Maestro >= 1.39 on Android; if unavailable, toggle
+# airplane mode manually at the marked steps and re-run.
+# Requires the dev build (appId from app.json) and the Firebase emulator or a
+# dev project reachable for the anonymous bootstrap.
+appId: dev.poovarasu.milevana
+name: Logging — airplane-mode entry logging
+---
+- launchApp:
+    clearState: true
+
+# Seed one vehicle while online (anonymous bootstrap needs a network hop)
+- assertVisible: "Add your first vehicle"
+- tapOn: "Get started"
+- inputText: "Log Car"
+- tapOn: "Save vehicle"
+- assertVisible: "Log Car"
+
+# ── go offline ──────────────────────────────────────────────────────────
+- setAirplaneMode: enabled   # manual fallback: toggle at this point
+# ─────────────────────────────────────────────────────────────────────────
+
+# Fuel fill-up — quantity + price derive the total (LD-03)
+- tapOn: "Add entry"
+- tapOn: "Fuel"
+- tapOn: "Petrol"
+- tapOn:
+    id: "fuel.quantity"
+- inputText: "40"
+- tapOn:
+    id: "fuel.price"
+- inputText: "1.5"
+- tapOn:
+    id: "entry.odometer"
+- inputText: "10100"
+- tapOn: "Save entry"
+- assertVisible: "Log Car"
+
+# EV charge — kWh + home charging (LOG-06). Requires the vehicle to have
+# 'electric' in its fuel types; if it does not, skip this block.
+- tapOn: "Add entry"
+- tapOn: "Fuel"
+- tapOn: "Electric"
+- tapOn: "Home"
+- tapOn:
+    id: "fuel.quantity"
+- inputText: "12"
+- tapOn:
+    id: "fuel.total"
+- inputText: "180"
+- tapOn:
+    id: "entry.odometer"
+- inputText: "10110"
+- tapOn: "Save entry"
+- assertVisible: "Log Car"
+
+# Expense — fixed category + amount
+- tapOn: "Add entry"
+- tapOn: "Expense"
+- tapOn: "Parking"
+- tapOn:
+    id: "money.amount"
+- inputText: "12.5"
+- tapOn: "Save entry"
+- assertVisible: "Log Car"
+
+# Service — one line, labour and discount roll into the total
+- tapOn: "Add entry"
+- tapOn: "Service"
+- tapOn: "General service"       # category chip
+- tapOn: "Pick a service type"   # line type picker
+- tapOn: "Engine oil"            # modal option
+- tapOn:
+    id: "service.line.0.cost"
+- inputText: "100"
+- tapOn:
+    id: "service.labour"
+- inputText: "50"
+- tapOn:
+    id: "service.discount"
+- inputText: "20"
+- tapOn: "Save entry"
+- assertVisible: "Log Car"
+
+# Income — category + platform + amount
+- tapOn: "Add entry"
+- tapOn: "Income"
+- tapOn: "Ride-hailing"
+- tapOn:
+    id: "money.amount"
+- inputText: "340"
+- tapOn:
+    id: "income.platform"
+- inputText: "Uber"
+- tapOn: "Save entry"
+- assertVisible: "Log Car"
+
+# Trip — start/end odometers, business purpose
+- tapOn: "Add entry"
+- tapOn: "Trip"
+- tapOn:
+    id: "trip.startOdometer"
+- inputText: "10110"
+- tapOn:
+    id: "trip.endOdometer"
+- inputText: "10160"
+- tapOn: "Business"
+- tapOn: "Save entry"
+- assertVisible: "Log Car"
+
+# All six rows visible in History with the pending-sync state
+- tapOn: "History"
+- assertVisible: "Petrol"
+- assertVisible: "Electric"
+- assertVisible: "Parking"
+- assertVisible: "Engine oil"
+- assertVisible: "Ride-hailing"
+- assertVisible: "Trip"
+
+# ── back online — queued writes flush ───────────────────────────────────
+- setAirplaneMode: disabled  # manual fallback: toggle at this point
+# ─────────────────────────────────────────────────────────────────────────
+# Expected: all six entries land on the server; no sync-issue banner; the
+# vehicle's odometer unit/currency are now locked in the edit form.
+- assertNotVisible: "Sync issues"
+- assertVisible: "Petrol"
