@@ -2,9 +2,6 @@
 // (counts, Move and switch, Switch without moving, Cancel), merge
 // resume/discard and sign-out.
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthError } from '../../data/adapter';
 import { resetFirebaseForTests, setFirebaseFactory } from '../../data/firebase';

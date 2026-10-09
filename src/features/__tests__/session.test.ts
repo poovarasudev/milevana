@@ -1,9 +1,6 @@
 // FND-AUTH-01/05, FND-SHL-04, FND-OBS-03 — bootstrap phases, the Connect gate,
 // selection resolution (MRU) and the access-lost flag.
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthError } from '../../data/adapter';
 import { resetFirebaseForTests, setFirebaseFactory } from '../../data/firebase';

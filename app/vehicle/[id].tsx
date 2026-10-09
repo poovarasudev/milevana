@@ -9,6 +9,7 @@ import { KeyboardAvoidingView, Modal, Pressable, ScrollView, TextInput, View } f
 import { RepoError } from '../../src/data/adapter';
 import { useAppStore } from '../../src/features/appStore';
 import { displayOdometer, useSettings } from '../../src/features/format';
+import { setVehicleMuted } from '../../src/features/reminders';
 import { adapter, getRepos } from '../../src/features/runtime';
 import { reportNonFatal } from '../../src/features/reporting';
 import {
@@ -18,6 +19,7 @@ import { t } from '../../src/i18n';
 import { DialogFrame } from '../../src/ui/DialogFrame';
 import { ErrorBoundary } from '../../src/ui/ErrorBoundary';
 import { Button, Card, Header, Icon, T } from '../../src/ui/kit';
+import { ToggleRow } from '../../src/ui/entry/fields';
 import { KEYBOARD_BEHAVIOR } from '../../src/ui/platform';
 import { useTheme, font } from '../../src/ui/theme';
 import {
@@ -82,6 +84,8 @@ function VehicleDetailScreen() {
 
   const isOwner = !!vehicle && vehicle.ownerId === uid;
   const web = adapter().platform === 'web';
+  const muted = useAppStore((s) =>
+    !!s.userDoc?.settings.mutedReminderVehicleIds?.includes(id ?? ''));
 
   useEffect(() => {
     let live = true;
@@ -178,6 +182,20 @@ function VehicleDetailScreen() {
             onSubmit={(v) => void onSubmit(v)}
             submitLabel={t('vehicleForm.saveEdits')}
           />
+          {/* REM-09: mute is per user, on the vehicle's settings (RD-07) —
+              every member sees it, not just the owner. */}
+          {!archived ? (
+            <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+              <Card>
+                <ToggleRow
+                  label={t('reminders.mute')}
+                  value={muted}
+                  onValueChange={(v) => void setVehicleMuted(vehicle.id, v)}
+                />
+                <T size={12} color={th.muted} style={{ marginTop: -12 }}>{t('reminders.muteSub')}</T>
+              </Card>
+            </View>
+          ) : null}
           {isOwner ? (
             <View style={{ paddingHorizontal: 20, gap: 10 }}>
               {archived ? (

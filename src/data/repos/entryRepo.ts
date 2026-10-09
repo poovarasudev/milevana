@@ -85,6 +85,31 @@ export class EntryRepo extends RepoBase {
   }
 
   /**
+   * Watch only entries dated on/after `since` — the 90-day readings window for
+   * odometer prediction (RD-02). The listen resumes from the durable-cache
+   * token across app opens, so after the first attach only deltas are billed
+   * (REM-02).
+   */
+  watchSince(
+    vehicleId: string,
+    since: Timestamp,
+    next: (entries: EntryRecord[]) => void,
+    opts: WatchOptions = {},
+  ): () => void {
+    return this.adapter.onQuery(
+      {
+        collection: `vehicles/${vehicleId}/entries`,
+        clauses: [
+          { kind: 'where', field: 'date', op: '>=', value: since },
+          { kind: 'orderBy', field: 'date', direction: 'desc' },
+        ],
+      },
+      (snap: QuerySnap) => next(this.parseWithIds(vehicleId, snap)),
+      opts.onError,
+    );
+  }
+
+  /**
    * Create an entry. The vehicle's lastOdometer moves to
    * max(lastOdometer, entry.odometer) inside the same commit; the extra write
    * is skipped entirely for entries that don't advance it (FR-OFF-01).

@@ -75,20 +75,40 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | LOG-14 | Done | `features/entries.ts` (5 s Undo window, background flush), `SwipeRow.tsx`, History snackbar, `entryRepo.delete` | `features/__tests__/entries.test.ts`, emulator delete + `lastOdometer` recompute block | Row hides immediately, server delete on timer expiry; app teardown commits pending deletes; owner can delete member entries. |
 | LOG-15 | Partial | `.maestro/logging-airplane-mode.yaml`, `docs/logging-verification.md`, stable `testID`s on all form fields | Flow authored; component + emulator suites | Android Maestro run needs a dev build + device (no Android toolchain here) — same caveat as FND-VER-02. Manual checklist rows left blank for the owner. |
 
+## Phase 3 — Reminders
+
+| Story | Status | Implementing files | Covering tests | Deviations / assumptions |
+|-------|--------|--------------------|----------------|--------------------------|
+| REM-01 | Done | `src/domain/reminders.ts` (matching, completion gate, roll-forward + month clamp, 90-day prediction, notification plans, OQ-47 ordering, snooze math, limits) | `src/domain/__tests__/reminders.test.ts` (31 tests) | Pure module — no platform imports (check:boundaries enforced). 'other' service lines never auto-match (RD-04). |
+| REM-02 | Done | `docs/quota-budget.md` (Reminders section appended) | Projection vs DR-20 | PASS, marginal on reads: ≈24,600/25,000 at 500 DAU (≈5,700/10,000 writes). Scheduling bills nothing itself; the `watchSince` 90-day entries window on non-selected odometer-reminder vehicles is the main new reader — levers recorded. Counts code-path-derived like earlier sections. |
+| REM-03 | Done | `src/data/notifications.ts` (contract + test factory), `notifications.native.ts` (expo-notifications: channel, inexact DATE triggers, tap + cold-start responses, settings intent), `notifications.web.ts` (no-op), `src/features/reminders.ts` (watches, debounced rebuild, cap 60/60d, odoNow dedupe, sign-out clear) | `src/features/__tests__/reminders.test.ts` (26 tests) | Rebuild on session start, reminder/entry snapshots, mute changes, AppState foreground. No exact-alarm permission (check-manifest). Permission denied → empty schedule, reminders still visible. |
+| REM-04 | Done | `src/ui/RemindersList.tsx`, `app/reminders.tsx`, `app/(tabs)/more.tsx` (replaces "Coming soon") | `src/ui/__tests__/reminders.test.tsx` (list order, due text, empty state, quick-add, skipped-doc notice, archived read-only) | `?vehicle=` + `?focus=` params support notification taps. Quick-add chips pre-fill the form only. |
+| REM-05 | Done | `src/ui/ReminderForm.tsx`, `app/reminder/[id].tsx`, `src/data/repos/reminderRepo.ts` (null-clears patch), `src/features/reminders.ts` CRUD guards | `src/ui/__tests__/reminders.test.tsx` (prefill, triggers, ranges, hours, web-offline), `repos.emulator.test.ts` reminder block, rules matrix | Title-follows-subject until touched; service "Other"/expense "Other" keep schema-compatible values; past dates + below-reading odometers save with warnings; 50-per-vehicle cap enforced feature-side. |
+| REM-06 | Done | `src/features/reminders.ts` (`onEntriesSnapshot` → `scanForCompletions` → `completeFromEntry`), `src/features/entries.ts` hook, `entryRepo.watchSince` | Feature suite: service-line vs category matching, creation-day gate, custom never completes, both-trigger roll-forward | Entry edits/deletes never reopen (forward-only scan). Non-selected vehicles complete via a `watchSince` listen when they carry an odometer reminder; a matching expense/service entry logged on another device completes on that device (writes are idempotent via `completedByEntryId`). |
+| REM-07 | Done | `src/features/reminders.ts` (`markReminderDone`, `snoozeReminder`, `cancelSnooze`), `RemindersList.tsx` (chips, "Snoozed until", cancel) | Feature + component tests | Snooze is per-user device-local (AsyncStorage `remSnoozes`), ends 9:00, cleared by due-date/odometer edits and by done/delete. |
+| REM-08 | Done | `src/data/notifications.native.ts` (`promptsSupported` = API≥33), `src/features/reminders.ts` (`maybeAskPermission`, `showNotifNotice`, `dismissNotifNotice`, `openNotifSettings`), `NotifOffNotice` | Feature suite: ask-once on first save, denied notice, Android ≤12 no prompt/no notice | Prompt fires on first reminder save only, never at install; one-time notice with Open settings. |
+| REM-09 | Done | `setVehicleMuted`/`isVehicleMuted` in `features/reminders.ts`, `settings.mutedReminderVehicleIds` write, mute switch in `app/vehicle/[id].tsx`, rebuild on settings change in `session.ts` | Feature suite (write + schedule exclusion), component test (card unaffected) | Per-user setting on `users/{uid}`; every member sees the switch on the vehicle detail sheet; muted vehicles still render in-app. |
+| REM-10 | Done | `src/ui/UpcomingCard.tsx`, `app/(tabs)/index.tsx` dashboard | Component tests (≤3 rows, ordering, snooze exclusion, muted still shown, empty state + add shortcut, See all) | Card rows share the OQ-47 ordering; overdue stays until done/snoozed. |
+| REM-11 | Done | `opensExpenseForm`/`expenseCategoryFor` (domain), notification `action:'expense'` payload, `registerReminderNavigator` + `app/_layout.tsx` routing, `?vehicle/category/amountMinor` params in `app/entry/[type].tsx`, `prefill` in `EntryFormProps`/`MoneyForm`, "Log expense" row action | Feature test (scheduled data carries category+amountMinor, body shows neither), component test (Loan EMI + amount save as one entry) | 'Loan EMI' is a fixed expense category — prefill picks it directly. Taps select the reminder's vehicle first; nothing is logged without a save. |
+| REM-12 | Partial | `docs/reminders-verification.md` (14-row manual checklist) | Automated half covered by feature/component/emulator suites | Needs a dev build + real Android device(s) (no Android toolchain in this env). Checklist rows left blank for the owner — covers 9:00 delivery, reboot/tz rebuild, two-user mute, sign-out clear, denied permission, next-open propagation. |
+
 ## Owner-only items
 
+- REM-12 device run: `docs/reminders-verification.md` needs an Android dev build and device(s), incl. an Android ≤12 target for the no-prompt check.
+- Production `expo-notifications` behaviour (channel creation, denied-state wording on-device) is verified on-device with REM-12; the code path is covered by the fake client in Jest.
+- `expo-notifications` was added via `npx expo install` (SDK-aligned 57.0.22) — the first `eas build`/prebuild after this change regenerates the native manifest; `npm run check:manifest` re-verifies no exact-alarm permission after that build.
 - Real Firebase config values (`EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — placeholders in `.env.example`; runbook: `docs/firebase-setup-runbook.md`.
 - `google-services.json` (Android) — not committed; local file expected, documented in runbook.
 - Firestore location choice, OAuth consent/client IDs, Play Console steps, DNS for `milevana.poovarasu.dev`, production rules deploy — all owner steps, documented in runbook.
 - Native adapter compile verification on a real Android build (this env has no Android toolchain; `tsc` passes against RNFirebase v26 modular types).
-- Android device runs for all Maestro flows (Foundation + `.maestro/logging-airplane-mode.yaml`) and the manual checklists in `docs/foundation-verification.md` / `docs/logging-verification.md` — needs a dev build and device.
+- Android device runs for all Maestro flows (Foundation + `.maestro/logging-airplane-mode.yaml`) and the manual checklists in `docs/foundation-verification.md` / `docs/logging-verification.md` / `docs/reminders-verification.md` — needs a dev build and device.
 - Firestore rules deploy: `e.date` is now allowed in the future per LD-04 — deploy the updated `firebase/firestore.rules` before clients rely on future-dated entries.
 
 ## Verification (last run, this environment)
 
 - `npx tsc --noEmit` — clean.
 - `npx eslint .` — clean (0 errors, 0 warnings).
-- `npm test` — 18 suites, 199 tests passed (unit + component + i18n-scanner).
+- `npm test` — 21 suites, 278 tests passed (unit + component + i18n-scanner).
 - Firestore rules emulator (`cd firebase && npx firebase emulators:exec --only firestore --project demo-milevana "npx jest --runInBand"`) — 3 suites, 34 tests passed.
 - Repository emulator (same wrapper around `npm run test:emulator`) — 1 suite, 40 tests passed.
 - `npm run guardrails` — boundaries, deps, manifest, i18n scanner all pass.
@@ -108,3 +128,7 @@ Emulator runs: **yes**, the Firestore emulator ran in this environment (Java 21)
   write still flipped the offline banner 15 s later), and the Connect retry
   timer is cancelled on session teardown.
 - `tsconfig.json` gained `"types": ["jest", "node"]` — TypeScript 6 does not auto-include `@types` packages the way earlier versions did, so Jest globals were missing.
+- Phase 3 (Reminders): `data/notifications` follows the same neutral/platform
+  pattern as `data/firebase` — Jest maps to `notifications.ts`, Metro resolves
+  `.native`/`.web`. Snooze is device-local (AsyncStorage `remSnoozes`), not
+  synced; per RD-06.

@@ -8,7 +8,9 @@ import type { AuthUser, WriteOpRecord } from '../data/adapter';
 import type { MalformedDocInfo } from '../data/repos/base';
 import type { UserDoc } from '../data/schema/user';
 import type { EntryRecord } from '../data/repos/entryRepo';
+import type { ReminderRecord } from '../data/repos/reminderRepo';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
+import type { NotificationPermissionState } from '../data/notifications';
 
 export type Phase =
   | 'booting' // auth listener not yet fired
@@ -53,6 +55,21 @@ interface AppState {
   entries: EntryRecord[];
   entriesVehicleId: string | null;
   entriesArrived: boolean;
+  /** Latest reminders watch snapshot per vehicle id (REM-04 read model). */
+  reminders: Record<string, ReminderRecord[]>;
+  /** Vehicles whose reminders watch has emitted at least once. */
+  remindersArrived: Record<string, boolean>;
+  /** 90-day-window entry snapshots for vehicles with odometer reminders —
+   *  feeds prediction on devices that schedule (REM-01/RD-02). */
+  odoEntries: Record<string, EntryRecord[]>;
+  /** Device-local snooze ends (ms epoch) keyed by reminder id (RD-06). */
+  snoozes: Record<string, number>;
+  /** reminderId → dueOdometer already alerted for (odoNow dedupe, RD-03). */
+  odoAlerted: Record<string, number>;
+  /** Notification permission state last seen (REM-08; null = not probed). */
+  notifPermission: NotificationPermissionState | null;
+  /** User dismissed the "notifications are off" notice (RD-08: once). */
+  notifNoticeOff: boolean;
   /** Rows hidden inside their 5-second Undo window (LD-12). No write has
    * happened yet — undo simply unhides. */
   pendingDeletes: Record<string, { vehicleId: string; entry: EntryRecord }>;
@@ -108,6 +125,13 @@ const initial: Omit<AppState, 'set'> = {
   entries: [],
   entriesVehicleId: null,
   entriesArrived: false,
+  reminders: {},
+  remindersArrived: {},
+  odoEntries: {},
+  snoozes: {},
+  odoAlerted: {},
+  notifPermission: null,
+  notifNoticeOff: false,
   pendingDeletes: {},
   online: true,
   quotaPaused: false,

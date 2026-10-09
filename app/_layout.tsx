@@ -4,7 +4,7 @@
 // issues) over the stack.
 
 import { Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold, useFonts } from '@expo-google-fonts/manrope';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
@@ -12,7 +12,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAppStore } from '../src/features/appStore';
-import { startSession } from '../src/features/session';
+import { registerReminderNavigator } from '../src/features/reminders';
+import { selectVehicle, startSession } from '../src/features/session';
 import { initI18n } from '../src/i18n';
 import { ConfigGate, ConnectGate, MergeResumeGate, SignInGate } from '../src/ui/gates';
 import {
@@ -31,6 +32,32 @@ export default function RootLayout() {
   const mode = useAppStore((s) => s.userDoc?.settings.theme);
 
   useEffect(() => startSession(), []);
+
+  // REM-11/RD-10: a notification tap selects its vehicle, then opens the
+  // Reminders screen — or, for an amount reminder, the pre-filled Expense
+  // form. Nothing is ever logged without the user saving.
+  useEffect(() => {
+    registerReminderNavigator((d) => {
+      void selectVehicle(d.vehicleId).finally(() => {
+        if (d.action === 'expense') {
+          router.push({
+            pathname: '/entry/[type]',
+            params: {
+              type: 'expense',
+              vehicle: d.vehicleId,
+              ...(d.category ? { category: d.category } : {}),
+              ...(d.amountMinor !== undefined ? { amountMinor: String(d.amountMinor) } : {}),
+            },
+          });
+        } else {
+          router.push({
+            pathname: '/reminders',
+            params: { vehicle: d.vehicleId, focus: d.reminderId },
+          });
+        }
+      });
+    });
+  }, []);
 
   const gate =
     !loaded || phase === 'booting' ? 'booting'

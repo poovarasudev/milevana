@@ -12,6 +12,9 @@ export interface EntryFormProps {
   entry?: EntryRecord;
   /** All of the vehicle's entries (odometer check, fuel defaults, mileage). */
   entries: EntryRecord[];
+  /** New-entry prefill (REM-11): an amount-bearing reminder opens the Expense
+   *  form with category and amount set; the date stays "now" (RD-10). */
+  prefill?: { category?: string; amountMinor?: number };
   readOnly: boolean;
   saving?: boolean;
   /** Persist failure message from the write path, shown above Save. */

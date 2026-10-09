@@ -1,9 +1,6 @@
 // LOG-04/11/13/14 — per-vehicle entry watch, edit/delete authority (LD-13)
 // and the 5-second delete-with-Undo window (LD-12).
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import { AppState } from 'react-native';
 import { resetFirebaseForTests, setFirebaseFactory } from '../../data/firebase';
 import { resetAppStore, useAppStore } from '../appStore';

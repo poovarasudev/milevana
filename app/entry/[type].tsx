@@ -17,14 +17,25 @@ import { useTheme } from '../../src/ui/theme';
 
 export default function EntryScreen() {
   const th = useTheme();
-  const { type, id } = useLocalSearchParams<{ type: string; id?: string }>();
+  const { type, id, vehicle: vid, category, amountMinor } =
+    useLocalSearchParams<{ type: string; id?: string; vehicle?: string; category?: string; amountMinor?: string }>();
   const kind = (ENTRY_TYPES as readonly string[]).includes(type ?? '') ? type! : 'expense';
-  const vehicle = useAppStore((s) => s.vehicles.find((v) => v.id === s.selectedVehicleId));
-  const entries = useAppStore((s) => s.entries);
+  // `?vehicle=` lets a reminder notification open the form on its own
+  // vehicle (RD-10); otherwise the selected vehicle applies.
+  const vehicle = useAppStore((s) =>
+    s.vehicles.find((v) => v.id === (vid ?? s.selectedVehicleId)));
+  const entries = useAppStore((s) => (vehicle && s.entriesVehicleId === vehicle.id ? s.entries : []));
   const arrived = useAppStore((s) => s.entriesArrived);
   const entry = id ? entries.find((e) => e.id === id) : undefined;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const prefill = !id && (category || amountMinor)
+    ? {
+        category: category || undefined,
+        amountMinor: amountMinor && /^\d+$/.test(amountMinor) ? Number(amountMinor) : undefined,
+      }
+    : undefined;
 
   const submit = async (v: EntryFormResult) => {
     if (!vehicle) return;
@@ -60,6 +71,7 @@ export default function EntryScreen() {
           type={kind}
           entry={entry}
           entries={entries}
+          prefill={prefill}
           saving={saving}
           saveError={error}
           onSubmit={(v) => void submit(v)}

@@ -117,3 +117,64 @@ tab focus or watch re-attach. If a vehicle ever approaches ~5,000 entries,
 revisit paging before raising the budget.
 
 Gate G2 for tab 2 may be marked satisfied.
+
+---
+
+# REM-02 — Reminders quota spike (gate G2, tab 3)
+
+Same method and threshold (DR-20: ≤ 25,000 reads and ≤ 10,000 writes/day at
+500 DAU). Counted from `src/features/reminders.ts`, `src/data/repos/reminderRepo.ts`
+and `src/data/repos/entryRepo.ts` (`watchSince`). Scheduling itself is local —
+a rebuild cancels and recreates OS notifications and bills nothing; the costs
+below are the watches that feed it and the writes it triggers.
+
+Model: 500 DAU, 2 vehicles each, ≤10 reminders/vehicle (cap 50, RD-09), ~half
+the non-selected vehicles carrying an odometer reminder (so their 90-day
+entries window is watched), 2 sessions/day, ~0.2 reminder CRUD ops,
+~0.15 matching-entry completions and ~0.02 mute toggles per user per day.
+
+## Per-operation counts (Reminders)
+
+| Operation | Reads | Writes | Notes |
+| --- | --- | --- | --- |
+| App-open scheduling (rebuild) | 0 | 0 | Pure local: cancels + recreates OS notifications from the read model. No Firestore call. |
+| Reminders watch attach per vehicle (warm) | ≈ changed docs | 0 | Cache-first resume; reminder docs change ≈0.35/vehicle/day (CRUD + completions). Cold attach bills the reminder count (≤50). |
+| Prediction window watch (`watchSince`, non-selected vehicle with an odometer reminder) | ≈ window deltas | 0 | Bills only entries in the 90-day window, deltas after first attach. The selected vehicle's window is already paid for by the History watch — no second listen. |
+| Reminder create | 1 | 1 | Rules `vehicleData` get on the write (RK-04) + `setDoc`. |
+| Reminder update / delete | 2 | 1 | `safeGet` + rules get + one `setDoc`/`deleteDoc`. |
+| Entry logged, matching reminder | 2 | 1 | Completion write on top of the entry write counted under Logging: `reminders.update` = `get` + rules get + `setDoc`. |
+| Dashboard card / Reminders list render | 0 | 0 | Reads the watch-driven read model only. |
+| Mute toggle | 1 | 1 | `getUser` + `updateDoc` settings merge (FR-SET-07). |
+| Sign-out clear | 0 | 0 | Local `clearAll` only. |
+
+## Daily projection (500 DAU)
+
+| Driver | Reads/day | Writes/day |
+| --- | --- | --- |
+| Reminders watch deltas (0.35 docs × 2 vehicles × 500 users) | 350 | 0 |
+| Odometer window deltas (1 entry/day × ~500 non-selected odo-reminder vehicles) | 500 | 0 |
+| Cold attaches amortized (2% reinstall/day × ~80 docs: 20 reminders + 60 window entries) | 800 | 0 |
+| Reminder CRUD (0.2/user/day) | 200 | 100 |
+| Auto-complete writes (0.15/user/day) | 150 | 75 |
+| Mute toggles (0.02/user/day) | 10 | 10 |
+| **Reminders total** | **≈ 2,000** | **≈ 185** |
+| **Logging + Foundation carry-over** | **≈ 22,600** | **≈ 5,520** |
+| **Combined** | **≈ 24,600** | **≈ 5,700** |
+
+At 100 DAU the same model gives ≈ 5,000 reads and ≈ 1,150 writes.
+
+## Verdict
+
+**PASS, marginal on reads.** ≈24,600 reads (~98% of the 25,000 DR-20 budget)
+and ≈5,700 writes (~57%) at 500 DAU. Reads are the binding resource; the
+single reminder-side driver is the second entries listen (`watchSince`) on
+non-selected vehicles with an odometer trigger.
+
+**Watch items / levers if the projection is ever exceeded:** attach the
+90-day window only while the Reminders screen or a pending rebuild actually
+needs a prediction (currently it stays live for the session); skip the window
+listen when `lastOdometer` is already inside the lead distance (odoNow needs
+no prediction); cap the per-vehicle reminder count below 50. No change is
+recommended at the current numbers.
+
+Gate G2 for tab 3 may be marked satisfied: REM-03 is acceptable.

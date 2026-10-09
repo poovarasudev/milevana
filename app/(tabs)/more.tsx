@@ -12,7 +12,7 @@ import { useTheme } from '../../src/ui/theme';
 
 const ITEMS: { labelKey: string; icon: IconName; href?: string; soon?: boolean }[] = [
   { labelKey: 'more.items.vehicles', icon: 'car', href: '/vehicles' },
-  { labelKey: 'more.items.reminders', icon: 'bell-outline', soon: true },
+  { labelKey: 'more.items.reminders', icon: 'bell-outline', href: '/reminders' },
   { labelKey: 'more.items.checklists', icon: 'clipboard-check-outline', soon: true },
   { labelKey: 'more.items.backup', icon: 'upload-outline', soon: true },
   { labelKey: 'more.items.join', icon: 'account-plus-outline', soon: true },

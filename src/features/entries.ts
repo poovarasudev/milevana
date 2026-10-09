@@ -8,6 +8,7 @@ import type { Unsubscribe } from '../data/adapter';
 import type { EntryInput, EntryPatch, EntryRecord } from '../data/repos/entryRepo';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
+import { onEntriesSnapshot } from './reminders';
 import { reportNonFatal } from './reporting';
 import { getRepos } from './runtime';
 
@@ -28,6 +29,9 @@ export function startEntriesWatch(vehicleId: string): Unsubscribe {
       const st = useAppStore.getState();
       if (st.entriesVehicleId !== vehicleId) return;
       useAppStore.setState({ entries, entriesArrived: true });
+      // REM-03/06: an entry snapshot can complete reminders and changes the
+      // prediction inputs, so the notification schedule rebuilds.
+      onEntriesSnapshot(vehicleId);
     },
     undefined,
     {

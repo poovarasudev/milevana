@@ -1,9 +1,6 @@
 // FND-VEH-01..04 — name uniqueness, typed-name delete match, the failed-delete
 // marker and the web write timeout.
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RepoError } from '../../data/adapter';
 import { resetFirebaseForTests, setFirebaseFactory } from '../../data/firebase';

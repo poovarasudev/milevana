@@ -10,6 +10,7 @@ import {
 import { ANON_AUTHOR_NAME } from '../data/schema/common';
 import { useAppStore } from './appStore';
 import { registerGateLauncher, resolveGate } from './linkPrompt';
+import { clearScheduledNotifications } from './reminders';
 import { adapter, getRepos } from './runtime';
 import { reportNonFatal } from './reporting';
 import { pauseSession, refreshSession, repairLinkedIdentity } from './session';
@@ -298,6 +299,7 @@ async function doSignOut(): Promise<void> {
     await localFlags.clearMergeRetry();
     await localFlags.clearFor(uid);
     pauseSession(); // stop watchers + reset before clearing the cache
+    await clearScheduledNotifications(); // REM-03
     await adapter().clearPersistence();
     await adapter().signOut();
     // auth listener → null → anonymous bootstrap (native) or sign-in (web)

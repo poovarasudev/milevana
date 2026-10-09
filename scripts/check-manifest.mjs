@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// FND-PLT-01 #2 / AC-D19 / AC-D20 guardrail: the merged Android release manifest
-// must not contain READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE or any location
-// permission. Usage:
+// FND-PLT-01 #2 / AC-D19 / AC-D20 / REM-03 #4 guardrail: the merged Android
+// release manifest must not contain READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE,
+// any location permission, or an exact-alarm permission. Usage:
 //   node scripts/check-manifest.mjs [path-to-merged-AndroidManifest.xml]
 // With no argument it looks in the standard Expo/Gradle merged-manifest locations.
 // If no merged manifest exists (no native build has run), it verifies the
@@ -19,6 +19,8 @@ const FORBIDDEN = [
   'android.permission.ACCESS_FINE_LOCATION',
   'android.permission.ACCESS_COARSE_LOCATION',
   'android.permission.ACCESS_BACKGROUND_LOCATION',
+  'android.permission.SCHEDULE_EXACT_ALARM',
+  'android.permission.USE_EXACT_ALARM',
 ];
 
 function* findManifests(dir) {

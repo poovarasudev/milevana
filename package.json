@@ -19,6 +19,7 @@
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.12",
     "expo-localization": "~57.0.2",
+    "expo-notifications": "~57.0.22",
     "expo-router": "~57.0.25",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
@@ -85,7 +86,9 @@
       "\\.android\\.test\\."
     ],
     "moduleNameMapper": {
-      "data/firebase$": "<rootDir>/src/data/firebase.ts"
+      "data/firebase$": "<rootDir>/src/data/firebase.ts",
+      "data/notifications$": "<rootDir>/src/data/notifications.ts",
+      "^@react-native-async-storage/async-storage$": "@react-native-async-storage/async-storage/jest/async-storage-mock"
     }
   },
   "private": true

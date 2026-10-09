@@ -10,6 +10,12 @@ import { Timestamp } from '../../data/schema/common';
 
 const seg = (path: string) => path.split('/');
 
+/** Orderable comparison value: Timestamps compare by their time. */
+const cmpValue = (v: unknown): number =>
+  typeof v === 'object' && v !== null && typeof (v as Timestamp).seconds === 'number'
+    ? (v as Timestamp).seconds * 1000 + (v as Timestamp).nanoseconds / 1e6
+    : (v as number);
+
 function matchesClause(doc: Record<string, unknown>, c: Extract<QueryClause, { kind: 'where' }>): boolean {
   const v = doc[c.field];
   switch (c.op) {
@@ -18,10 +24,10 @@ function matchesClause(doc: Record<string, unknown>, c: Extract<QueryClause, { k
     case 'array-contains': return Array.isArray(v) && v.includes(c.value);
     case 'array-contains-any': return Array.isArray(v) && (c.value as unknown[]).some((x) => v.includes(x));
     case 'in': return (c.value as unknown[]).includes(v);
-    case '<': return (v as number) < (c.value as number);
-    case '<=': return (v as number) <= (c.value as number);
-    case '>': return (v as number) > (c.value as number);
-    case '>=': return (v as number) >= (c.value as number);
+    case '<': return cmpValue(v) < cmpValue(c.value);
+    case '<=': return cmpValue(v) <= cmpValue(c.value);
+    case '>': return cmpValue(v) > cmpValue(c.value);
+    case '>=': return cmpValue(v) >= cmpValue(c.value);
     default: return true;
   }
 }

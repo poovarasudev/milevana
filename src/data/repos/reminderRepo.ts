@@ -7,10 +7,21 @@ import { ReminderDoc, reminderDocSchema } from '../schema/reminder';
 import { RepoBase, WatchOptions } from './base';
 
 export type ReminderInput = Omit<ReminderDoc, 'createdBy' | 'createdAt' | 'updatedAt' | 'schemaVersion'>;
-export type ReminderPatch = Partial<ReminderInput>;
+
+/**
+ * Patch for edit: `undefined` leaves a field alone, `null` removes it from
+ * the stored document (update replaces the whole doc) — same contract as
+ * EntryPatch.
+ */
+export type ReminderPatch = {
+  [K in keyof ReminderInput]?: ReminderInput[K] | null;
+};
 
 export interface ReminderRecord extends ReminderDoc {
   id: string;
+  /** Snapshot metadata: this document has writes not yet acknowledged by the
+   * server — renders the "waiting to sync" icon (FR-OFF-03). */
+  pending: boolean;
 }
 
 export class ReminderRepo extends RepoBase {
@@ -48,9 +59,14 @@ export class ReminderRepo extends RepoBase {
   async update(vehicleId: string, id: string, patch: ReminderPatch): Promise<void> {
     const cur = await this.get(vehicleId, id);
     if (!cur) throw new RepoError('not-found', id);
-    const merged = { ...cur, ...patch, updatedAt: this.adapter.now() };
+    const merged: Record<string, unknown> = { ...cur, updatedAt: this.adapter.now() };
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) continue;
+      if (v === null) delete merged[k];
+      else merged[k] = v;
+    }
     this.assertValid(merged);
-    await this.finishWrite(this.adapter.setDoc(`vehicles/${vehicleId}/reminders/${id}`, merged as Record<string, unknown>));
+    await this.finishWrite(this.adapter.setDoc(`vehicles/${vehicleId}/reminders/${id}`, merged));
   }
 
   async delete(vehicleId: string, id: string): Promise<void> {
@@ -61,7 +77,7 @@ export class ReminderRepo extends RepoBase {
     const out: ReminderRecord[] = [];
     for (const d of snap.docs) {
       const v = this.parse('reminders', reminderDocSchema, d, `vehicles/${vehicleId}/reminders/${d.id}`);
-      if (v !== null) out.push({ ...v, id: d.id });
+      if (v !== null) out.push({ ...v, id: d.id, pending: d.hasPendingWrites });
     }
     return out;
   }

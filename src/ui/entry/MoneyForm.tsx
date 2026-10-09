@@ -26,15 +26,19 @@ function categoryState(
   return list.includes(c) ? { pick: c, other: '' } : { pick: OTHER, other: c };
 }
 
-export function MoneyForm({ kind, vehicle, entry, entries, readOnly, saving, saveError, onSubmit, onDelete }: EntryFormProps & { kind: 'expense' | 'income' }) {
+export function MoneyForm({ kind, vehicle, entry, entries, prefill, readOnly, saving, saveError, onSubmit, onDelete }: EntryFormProps & { kind: 'expense' | 'income' }) {
   const shared = useSharedFields(entry);
   const list = kind === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-  const seed = categoryState(list, entry);
+  const seed = categoryState(list, entry ?? (prefill?.category ? { category: prefill.category } : undefined));
   const incomeDetails = (entry?.details ?? undefined) as IncomeDetailsDoc | undefined;
 
   const [pick, setPick] = useState(seed.pick);
   const [other, setOther] = useState(seed.other);
-  const [amount, setAmount] = useState(entry?.amount ? String(minorToDecimal(entry.amount.minor, vehicle.currency)) : '');
+  const [amount, setAmount] = useState(
+    entry?.amount ? String(minorToDecimal(entry.amount.minor, vehicle.currency))
+    : prefill?.amountMinor !== undefined ? String(minorToDecimal(prefill.amountMinor, vehicle.currency))
+    : '',
+  );
   const [platform, setPlatform] = useState(incomeDetails?.platform ?? '');
   const [errs, setErrs] = useState<Record<string, string>>({});
 

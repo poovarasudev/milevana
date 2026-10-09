@@ -15,6 +15,7 @@ import type { MalformedDocInfo } from '../data/repos/base';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
 import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
+import { requestRebuild, startReminders, stopReminders, syncReminderWatches } from './reminders';
 import { syncEntryWatch, stopEntryWatch } from './linkPrompt';
 import { adapter, getRepos, setMalformedSink } from './runtime';
 import { reportNonFatal } from './reporting';
@@ -72,6 +73,7 @@ export function startSession(): () => void {
 function teardownSession(): void {
   sessionStops.forEach((s) => s());
   sessionStops = [];
+  stopReminders();
   stopEntryWatch();
   entriesWatchStop?.();
   entriesWatchStop = null;
@@ -104,6 +106,13 @@ export function pauseSession(): void {
     userDoc: null,
     selectedVehicleId: null,
     reportsAllVehicles: false,
+    reminders: {},
+    remindersArrived: {},
+    odoEntries: {},
+    snoozes: {},
+    odoAlerted: {},
+    notifPermission: null,
+    notifNoticeOff: false,
     syncIssues: [],
     skippedDocs: [],
     pendingChanges: 0,
@@ -140,6 +149,13 @@ async function handleAuthChange(user: AuthUser | null): Promise<void> {
       pendingDeletes: {},
       selectedVehicleId: null,
       reportsAllVehicles: false,
+      reminders: {},
+      remindersArrived: {},
+      odoEntries: {},
+      snoozes: {},
+      odoAlerted: {},
+      notifPermission: null,
+      notifNoticeOff: false,
       mru: [],
       welcomeSeen: false,
       linkPromptDismissed: false,
@@ -277,7 +293,11 @@ function startWatchers(user: AuthUser): void {
       uid,
       (doc) => {
         if (useAppStore.getState().user?.uid !== uid) return;
+        const mutedBefore = useAppStore.getState().userDoc?.settings.mutedReminderVehicleIds;
         useAppStore.setState({ userDoc: doc });
+        // REM-09: a mute-list change rebuilds the schedule.
+        const mutedAfter = doc?.settings.mutedReminderVehicleIds;
+        if (JSON.stringify(mutedBefore) !== JSON.stringify(mutedAfter)) requestRebuild();
         if (doc) {
           const loc = resolveLocale(doc.settings.locale);
           if (i18n.language !== loc) void i18n.changeLanguage(loc);
@@ -312,6 +332,9 @@ function startWatchers(user: AuthUser): void {
   const pendingTick = setInterval(recomputePending, 1500);
   sessionStops.push(() => clearInterval(pendingTick));
 
+  // REM-03: reminder watches and the notification rebuild loop.
+  startReminders();
+
   if (user.isAnonymous) {
     // populated once the vehicle list lands (handleVehicleList → syncEntryWatch)
   }
@@ -344,6 +367,8 @@ export function handleVehicleList(list: VehicleRecord[]): void {
   });
   syncEntryWatch(list);
   syncSelectedEntriesWatch();
+  syncReminderWatches();
+  requestRebuild();
   recomputePending();
 }
 
