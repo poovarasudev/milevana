@@ -26,7 +26,7 @@ function categoryState(
   return list.includes(c) ? { pick: c, other: '' } : { pick: OTHER, other: c };
 }
 
-export function MoneyForm({ kind, vehicle, entry, entries, prefill, readOnly, saving, saveError, onSubmit, onDelete }: EntryFormProps & { kind: 'expense' | 'income' }) {
+export function MoneyForm({ kind, vehicle, entry, entries, prefill, readOnly, saving, saveError, attachmentsNode, onSubmit, onDelete }: EntryFormProps & { kind: 'expense' | 'income' }) {
   const shared = useSharedFields(entry);
   const list = kind === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
   const seed = categoryState(list, entry ?? (prefill?.category ? { category: prefill.category } : undefined));
@@ -98,6 +98,7 @@ export function MoneyForm({ kind, vehicle, entry, entries, prefill, readOnly, sa
       error={saveError}
       submitLabel={entry ? t('common.save') : t('entryForm.saveEntry')}
       onSubmit={submit}
+      attachments={attachmentsNode}
       onDelete={onDelete}
     >
       <ChoiceChips

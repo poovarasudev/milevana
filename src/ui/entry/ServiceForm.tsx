@@ -37,7 +37,7 @@ function categoryState(entry?: { category?: string }): { pick: string; other: st
   return SERVICE_TYPES.some((s) => s.label === c) ? { pick: c, other: '' } : { pick: OTHER, other: c };
 }
 
-export function ServiceForm({ vehicle, entry, entries, readOnly, saving, saveError, onSubmit, onDelete }: EntryFormProps) {
+export function ServiceForm({ vehicle, entry, entries, readOnly, saving, saveError, attachmentsNode, onSubmit, onDelete }: EntryFormProps) {
   const th = useTheme();
   const shared = useSharedFields(entry);
   const details = entry?.details as ServiceDetailsDoc | undefined;
@@ -150,6 +150,7 @@ export function ServiceForm({ vehicle, entry, entries, readOnly, saving, saveErr
       error={saveError}
       submitLabel={entry ? t('common.save') : t('entryForm.saveEntry')}
       onSubmit={submit}
+      attachments={attachmentsNode}
       onDelete={onDelete}
     >
       <Label>{t('entryForm.service.lines')}</Label>

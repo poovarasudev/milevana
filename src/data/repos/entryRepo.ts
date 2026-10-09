@@ -24,10 +24,12 @@ export interface EntryInput {
 /**
  * Patch for edit: `undefined` leaves a field alone, `null` removes it from
  * the stored document (update replaces the whole doc), anything else sets it.
+ * `uploaderUids` is repo-internal — the receipt upload queue adds the uploader
+ * after a Drive upload lands (SC-DRV12-01).
  */
 export type EntryPatch = {
   [K in keyof Omit<EntryInput, 'type'>]?: EntryInput[K] | null;
-};
+} & { uploaderUids?: string[] };
 
 export interface EntryRecord extends ParsedEntryDoc {
   id: string;
@@ -179,6 +181,15 @@ export class EntryRepo extends RepoBase {
     const vehicle = await this.mustGetVehicle(vehicleId);
     await this.finishWrite(this.adapter.deleteDoc(`vehicles/${vehicleId}/entries/${entryId}`));
     await this.syncVehicleOdometer(vehicleId, vehicle);
+  }
+
+  /**
+   * Recompute lastOdometer/lastOdometerAt from the stored entries — used after
+   * a Drive restore, which writes entries in bulk and must leave the parent's
+   * odometer correct (DRV-10).
+   */
+  async resyncOdometer(vehicleId: string): Promise<void> {
+    await this.syncVehicleOdometer(vehicleId);
   }
 
   async hasEntries(vehicleId: string): Promise<boolean> {

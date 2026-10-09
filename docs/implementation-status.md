@@ -111,6 +111,28 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | RPT-13 | Done | `src/ui/reports/DashboardCards.tsx`, `app/(tabs)/index.tsx` | `reports.test.tsx` (spend, vs-prev-month, cost/unit, 90-day, mileage vs bi-fuel cost/km, income-vs-cost, `hours`, empty) | Monthly spend + prev-month delta, cost/unit (month + 90-day), last mileage or all-time cost/km for petrol+CNG, income-vs-cost when income exists, recent entries; Notices/UpcomingCard/Add Entry preserved. |
 | RPT-14 | Partial | `docs/reports-verification.md` (13-row manual checklist), all automated suites above | 37 domain + reportData + 12 UI tests | Figures verified against hand-calculated fixtures in Jest; charts/emulator read-counts/offline/large-vehicle rows need a dev build + real Android device and a web smoke run (no Android toolchain in this env). Checklist left for the owner. |
 
+## Phase 5 — Drive backup, restore, export and receipts
+
+| Story | Status | Implementation | Tests | Notes / deviations |
+| --- | --- | --- | --- | --- |
+| DRV-01 | Partial | `src/data/drive/api.ts` + `client.native.ts`/`client.web.ts` (one `DriveClient` surface), `src/features/__tests__/fakeDrive.ts` | `api.test.ts` (REST mapping, errors) | The spike itself (cross-client visibility with a real Google account) is checklist row 4 of `docs/drive-export-verification.md` — needs the owner-configured OAuth clients. |
+| DRV-02 | Done | `docs/quota-budget.md` (DRV-02 section appended) | Projection vs DR-20 | Drive-phase increment ≈1,750 reads / ≈840 writes at 500 DAU — passes alone; combined ≈28,400 reads still fails the 25k share (the pre-existing RPT-01 carry-over breach, flagged for telemetry re-check; gates DRV-08/DRV-10 recorded implemented with the flag). |
+| DRV-03 | Done | `src/data/drive/client.ts` (interface + factory), `client.native.ts` (Google Sign-In `addScopes` + `getTokens`), `client.web.ts` (GIS token client, account-match check), `api.ts` (Drive v3 REST), `DriveError` taxonomy | `api.test.ts`, `driveAccess.test.ts`, `fakeDrive.ts` consumers | Incremental `drive.file` consent; sign-out clears the Google session (`resetSession`). Error map covers storage-full / not-found / revoked / network. |
+| DRV-04 | Done | `src/features/driveAccess.ts` (grant flag per uid in `localFlags`, request/decline/revoke), `app/backup-export.tsx` states | `driveAccess.test.ts`, `backupExport.test.tsx` | Consent is requested only when a Drive feature is first used; decline leaves the app fully usable; revoke clears the local flag and surfaces "Drive access was removed". |
+| DRV-05 | Done | `src/data/drive/folders.ts` (`ensureDriveLayout`, `ensureVehicleReceiptFolder` keyed by vehicle id, `receiptFileName`) | `folders.test.ts` | Root `Milevana` + `Backups`/`Receipts`; ids persisted in `users.drive`. Same-name vehicles get separate folders — the client gained `findFolder`/`createFolder` so a folder claimed by another vehicle id is never reused. |
+| DRV-06 | Done | `src/data/drive/backupFile.ts` (`collectBackup` shape: formatVersion/createdAt/kind/app/settings/vehicles, `docToJson`, `readBackupFile`, `BackupFileError`) | `backupFile.test.ts`, `backup.test.ts` | Members exported as `{uid,name?,role}` (no email); `settings` holds only the listed keys; unsupported `formatVersion` throws a distinct error. |
+| DRV-07 | Done | `src/features/backup.ts` (`runBackup`, `listBackups`/`listManualBackups`, `deleteBackup`, failure flag), `app/backup-export.tsx`, `app/(tabs)/more.tsx` row | `backup.test.ts`, `backupExport.test.tsx` | `milevana-backup-YYYY-MM-DD-HHMM.json` into `Backups/`; "Your backups" lists manual files with Delete; link/consent/busy/failed states all rendered. |
+| DRV-08 | Done | `src/features/backup.ts` (`maybeRunAutomaticBackup`, `RETAIN_AUTOMATIC_BACKUPS=10`, retention + pending-delete handoff), frequency setting on the Backup screen (Android only) | `backup.test.ts` (stale/fresh, off/anon/web/ungranted skips, retention, failed-delete queue) | Runs on session start via `session.ts` hook when native + linked + granted + stale; failures are silent with `backupFailed` flag → "Last backup failed" notice. Gate: see DRV-02 flag. |
+| DRV-09 | Done | `src/features/restore.ts` (`reviewBackup` statuses missing/differs/same/not-yours), `app/restore.tsx` (backup list, latest preselected, per-vehicle review, settings tick) | `restore.test.ts`, `restore.test.tsx` | `not-yours` is shown as "Not restored (not yours)" and never offered; settings restore is opt-in (off by default). |
+| DRV-10 | Done | `src/features/restore.ts` (`planRestore`/`runRestore` — ≤500-op batches, vehicle-before-children, cancel between batches, keep-current preserves createdBy/createdAt), `app/restore.tsx` run/cancel/summary | `restore.test.ts` (batching, idempotence, cancel, not-owned), `restore.test.tsx` (end-to-end) | Re-running a restore is safe (idempotent child writes); `lastOdometer` recomputed from restored entries via `entryRepo` resync. Gate: see DRV-02 flag. |
+| DRV-11 | Done | `src/data/receiptPick.*` (camera/gallery/PDF native, file input web), `src/features/receipts.ts` (pick → stage → pending, MAX_ATTACHMENTS=5), `src/ui/entry/AttachmentsSection.tsx`, all four entry forms | `receipts.test.ts`, `attachments.test.tsx` | Native stages the file app-local and enqueues the upload at save; web keeps the Blob until save so the Drive filename uses the final entry date. Camera-only permission (image-picker plugin configured in `app.json`). |
+| DRV-12 | Done | `src/features/uploadQueue.ts` (persisted FIFO under `receiptQueue` flag, serialized `kickUploadQueue` promise chain, 1m/5m/15m/hourly backoff, 5 attempts, storage-full state, `installUploadDriver` on AppState/connectivity) | `uploadQueue.test.ts` (9 tests incl. FIFO, backoff, restart persistence, orphan sweep) | Success patches the entry: status `uploaded` + `driveFileId` + `uploaderUids`. `resetUploadQueueForTests` clears the wake timer between tests. |
+| DRV-13 | Done | `src/features/receiptView.ts` (native intent/PDF + web object-URL viewers), `src/features/receiptCache.ts` (AsyncStorage index, 100 MB LRU), `receipts.ts` (`openReceipt` → cached/thumbnail/missing) | `receipts.test.ts`, `receiptCache`/`driveDeletes` tests, `attachments.test.tsx` | Deleted/trashed Drive files surface "File no longer in Drive" via `status:'missing'`; other members' receipts aren't fetched for non-uploaders. |
+| DRV-14 | Done | `src/features/driveDeletes.ts` (pending-delete flag queue, ≤5 retries), hooks in `features/entries.ts` undo commit and `features/vehicleActions.ts` delete | `driveDeletes.test.ts`, `uploadQueue.test.ts` | Attachment removal deletes the Drive file; entry delete waits out the 5 s undo window; vehicle delete removes receipt files + folder before the Firestore subtree; failures queue for retry and never block. |
+| DRV-15 | Done | `src/domain/csv.ts` (BOM, English headers, per-type column groups, currency-aware decimals, RFC 4180 quoting, `milevana-export-*` name) | `csv.test.ts` | Date `YYYY-MM-DD HH:mm`; `yes`/`no`; service lines `name: amount; …`; columns present even when empty. |
+| DRV-16 | Done | `src/features/csvExport.ts` (scope/range/archived), `src/data/shareOut.*` (native share sheet + temp cleanup, web download), export card in `app/backup-export.tsx` | `backupExport.test.tsx`, `csv.test.ts` | Works for anonymous users and offline on Android (cache); web requires online. Archived excluded unless toggled; ranges mirror Reports incl. Custom. |
+| DRV-17 | Partial | `docs/drive-export-verification.md` (24-row manual checklist + run record) | Automated half: `npm test` (438 tests) + emulator/rules suites + `check:manifest` | Needs the owner's Google Cloud config and a real device — see Owner-only items. |
+
 ## Owner-only items
 
 - REM-12 device run: `docs/reminders-verification.md` needs an Android dev build and device(s), incl. an Android ≤12 target for the no-prompt check.
@@ -123,15 +145,17 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 - Android device runs for all Maestro flows (Foundation + `.maestro/logging-airplane-mode.yaml`) and the manual checklists in `docs/foundation-verification.md` / `docs/logging-verification.md` / `docs/reminders-verification.md` / `docs/reports-verification.md` — needs a dev build and device.
 - RPT-14 device run: real-surface chart checks (render + tap-to-show-value on Android and web), offline report open, emulator read-count spot check on a large vehicle — checklist in `docs/reports-verification.md`.
 - RPT-01 quota verdict is a marginal FAIL on reads at 500 DAU (≈26.7k vs 25k DR-20 share; ~53% of the real Spark quota) — decide whether to re-weigh the DR-20 share or re-check with real telemetry; levers in `docs/quota-budget.md`.
+- DRV-02 carries the same flag forward: combined ≈28.4k reads at 500 DAU — the Drive-phase increment itself is small (≈1.75k reads / ≈840 writes) and passes; the breach is the RPT-01 carry-over, re-check on real telemetry before v1.
+- Google Drive setup (DRV-01/03/17): Google Cloud project with the Drive API enabled, `drive.file` on the OAuth consent screen (test users suffice), Android OAuth/web client id for `@react-native-google-signin` (`webClientId`), and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` for GIS on web — `client.web.ts` fails closed with `not-configured` when it is absent.
+- DRV-17 device run: `docs/drive-export-verification.md` (24 rows) needs the OAuth config above plus an Android dev build, a web build, and two test Google accounts — covers real consent/decline/revoke, cross-client backup→restore, airplane-mode receipts, full-Drive, CSV-in-spreadsheet and the release-manifest permission check.
 - Firestore rules deploy: `e.date` is now allowed in the future per LD-04 — deploy the updated `firebase/firestore.rules` before clients rely on future-dated entries.
 
 ## Verification (last run, this environment)
 
 - `npx tsc --noEmit` — clean.
-- `npx eslint .` — clean (0 errors, 0 warnings).
-- `npm test` — 24 suites, 335 tests passed (unit + component + i18n-scanner). One Jest worker printed a "failed to exit gracefully" teardown warning after all suites passed — no failures, worth a look if it recurs.
-- Firestore rules emulator (`cd firebase && npx firebase emulators:exec --only firestore --project demo-milevana "npx jest --runInBand"`) — 3 suites, 34 tests passed.
-- Repository emulator (same wrapper around `npm run test:emulator`) — 1 suite, 40 tests passed.
+- `npm test` — 37 suites, 438 tests passed (unit + component + i18n-scanner; Drive/receipts coverage under `src/data/drive/__tests__/`, `src/features/__tests__/`, `src/ui/__tests__/attachments.test.tsx`, `app/__tests__/backupExport.test.tsx`, `app/__tests__/restore.test.tsx`). `--detectOpenHandles --runInBand` exits clean; the parallel run still prints a "worker failed to exit gracefully" teardown warning after all suites pass — no diagnosed leak.
+- Firestore rules emulator (`npm run test:rules`) — 3 suites, 34 tests passed.
+- Repository emulator (`npm run test:emulator`) — 1 suite, 40 tests passed.
 - `npm run guardrails` — boundaries, deps, manifest, i18n scanner all pass.
 - `npx expo export --platform web` — succeeds.
 
@@ -153,3 +177,8 @@ Emulator runs: **yes**, the Firestore emulator ran in this environment (Java 21)
   pattern as `data/firebase` — Jest maps to `notifications.ts`, Metro resolves
   `.native`/`.web`. Snooze is device-local (AsyncStorage `remSnoozes`), not
   synced; per RD-06.
+- Phase 5 adds the Drive module under `src/data/drive/` (`client.ts` is the
+  neutral contract — Jest maps `*/client` to it, Metro resolves
+  `.native`/`.web`) plus `localFiles`/`receiptPick`/`shareOut`/`receiptView`
+  with the same three-file pattern. `EntryPatch` gained `uploaderUids` so a
+  queued upload can record who uploaded the file.

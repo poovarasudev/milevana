@@ -8,6 +8,7 @@ import type { Unsubscribe } from '../data/adapter';
 import type { EntryInput, EntryPatch, EntryRecord } from '../data/repos/entryRepo';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
+import { cleanupEntryAttachments } from './driveCleanup';
 import { onEntriesSnapshot } from './reminders';
 import { reportNonFatal } from './reporting';
 import { getRepos } from './runtime';
@@ -151,6 +152,9 @@ async function commitDelete(entryId: string): Promise<void> {
   delete rest[entryId];
   useAppStore.setState({ pendingDeletes: rest });
   try {
+    const uid = useAppStore.getState().user?.uid;
+    // DRV-14 — best-effort Drive cleanup; never delays the entry delete.
+    if (uid) await cleanupEntryAttachments(uid, pending.entry).catch(() => undefined);
     await getRepos().entries.delete(pending.vehicleId, entryId);
   } catch (e) {
     // Refused (web has no durable queue): the row simply reappears — it was

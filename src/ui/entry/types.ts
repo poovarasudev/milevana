@@ -1,6 +1,7 @@
 // Common props for the per-type entry forms (LOG-04..10). The dispatcher in
 // app/entry/[type].tsx picks the form; `entry` present = edit mode.
 
+import type { ReactNode } from 'react';
 import type { EntryInput, EntryPatch, EntryRecord } from '../../data/repos/entryRepo';
 import type { VehicleRecord } from '../../data/repos/vehicleRepo';
 
@@ -19,6 +20,8 @@ export interface EntryFormProps {
   saving?: boolean;
   /** Persist failure message from the write path, shown above Save. */
   saveError?: string | null;
+  /** Receipt attachments UI (DRV-11), rendered above the notes field. */
+  attachmentsNode?: ReactNode;
   onSubmit: (v: EntryFormResult) => void;
   onDelete?: () => void;
 }

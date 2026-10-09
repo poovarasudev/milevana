@@ -9,6 +9,7 @@ import {
 } from '../data/serializer';
 import { ANON_AUTHOR_NAME } from '../data/schema/common';
 import { useAppStore } from './appStore';
+import { clearDriveSession } from './driveCleanup';
 import { registerGateLauncher, resolveGate } from './linkPrompt';
 import { clearScheduledNotifications } from './reminders';
 import { adapter, getRepos } from './runtime';
@@ -258,7 +259,8 @@ let waitSyncUnsub: (() => void) | null = null;
 export function requestSignOut(): void {
   const st = useAppStore.getState();
   if (!st.user || st.user.isAnonymous || st.signingOut) return;
-  const n = st.pendingChanges;
+  // Unsynced writes + queued receipt uploads both count (SC-DRV12-05).
+  const n = st.pendingChanges + st.receiptQueuePending;
   if (n > 0 && adapter().platform === 'native') {
     useAppStore.setState({ signOutPending: n });
   } else {
@@ -298,6 +300,7 @@ async function doSignOut(): Promise<void> {
     // Retry data + device-local flags die with the session (FR-OUT-05).
     await localFlags.clearMergeRetry();
     await localFlags.clearFor(uid);
+    await clearDriveSession(); // DRV-12/13: Drive session, receipt cache, temp
     pauseSession(); // stop watchers + reset before clearing the cache
     await clearScheduledNotifications(); // REM-03
     await adapter().clearPersistence();

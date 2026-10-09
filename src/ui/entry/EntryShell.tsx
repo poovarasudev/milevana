@@ -91,7 +91,7 @@ export function odometerWarning(
   });
 }
 
-export function EntryShell({ children, shared, vehicle, entries, excludeId, odometerMode = 'optional', showDate = true, readOnly, readonlyReason, saving, error, submitLabel, onSubmit, onDelete }: {
+export function EntryShell({ children, shared, vehicle, entries, excludeId, odometerMode = 'optional', showDate = true, readOnly, readonlyReason, saving, error, submitLabel, attachments, onSubmit, onDelete }: {
   children: ReactNode;
   shared: SharedFields;
   vehicle: VehicleRecord;
@@ -107,6 +107,8 @@ export function EntryShell({ children, shared, vehicle, entries, excludeId, odom
   saving?: boolean;
   error?: string | null;
   submitLabel: string;
+  /** Receipt attachments section, rendered above the notes field (DRV-11). */
+  attachments?: ReactNode;
   /** Called once the shared fields validate; the section decides the rest. */
   onSubmit: () => void;
   onDelete?: () => void;
@@ -176,6 +178,7 @@ export function EntryShell({ children, shared, vehicle, entries, excludeId, odom
             {warn}
           </T>
         ) : null}
+        {attachments}
         <Field
           label={t('entryForm.notes')}
           value={shared.notes}

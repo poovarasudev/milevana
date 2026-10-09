@@ -24,7 +24,7 @@ import type { EntryFormProps } from './types';
 
 type TripErrors = Record<string, string>;
 
-export function TripForm({ vehicle, entry, entries, readOnly, saving, saveError, onSubmit, onDelete }: EntryFormProps) {
+export function TripForm({ vehicle, entry, entries, readOnly, saving, saveError, attachmentsNode, onSubmit, onDelete }: EntryFormProps) {
   const th = useTheme();
   const settings = useSettings();
   const d = entry?.details as TripDetailsDoc | undefined;
@@ -141,6 +141,7 @@ export function TripForm({ vehicle, entry, entries, readOnly, saving, saveError,
       error={saveError}
       submitLabel={entry ? t('common.save') : t('entryForm.saveEntry')}
       onSubmit={submit}
+      attachments={attachmentsNode}
       onDelete={onDelete}
     >
       <DateTimeField label={t('entryForm.trip.start')} value={startAt} onChange={setStart} disabled={readOnly} />

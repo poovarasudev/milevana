@@ -15,12 +15,16 @@ import type { MalformedDocInfo } from '../data/repos/base';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
 import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
+import { maybeRunAutomaticBackup } from './backup';
+import { runPendingDriveDeletes } from './driveDeletes';
+import { localFiles } from '../data/localFiles';
 import { stopReportEntryWatches } from './reportData';
 import { requestRebuild, startReminders, stopReminders, syncReminderWatches } from './reminders';
 import { syncEntryWatch, stopEntryWatch } from './linkPrompt';
 import { adapter, getRepos, setMalformedSink } from './runtime';
 import { reportNonFatal } from './reporting';
 import { installWriteObserver, recomputePending } from './sync';
+import { installUploadDriver, refreshUploadQueueState, sweepOrphanedStaging } from './uploadQueue';
 import { deviceLanguage, i18n, initI18n, resolveLocale } from '../i18n';
 
 let lifecycleStops: (() => void)[] = [];
@@ -41,6 +45,12 @@ export function startSession(): () => void {
   setMalformedSink(reportMalformedDoc);
   lifecycleStops.push(installWriteObserver());
   lifecycleStops.push(installDeleteFlush()); // LD-12: backgrounding commits deletes
+  // ED-12: leftover CSV temp files go at every app start.
+  try {
+    void localFiles().clearTemp();
+  } catch {
+    // no local files impl (tests)
+  }
   try {
     lifecycleStops.push(
       adapter().onAuthStateChanged((user) => {
@@ -342,6 +352,15 @@ function startWatchers(user: AuthUser): void {
 
   // REM-03: reminder watches and the notification rebuild loop.
   startReminders();
+
+  // DRV-08/12/14 — Drive housekeeping: the receipt upload queue driver, a
+  // staging sweep for orphaned picks, pending Drive deletes, and the
+  // automatic backup when the configured frequency is stale (Android only).
+  sessionStops.push(installUploadDriver(uid));
+  void refreshUploadQueueState(uid);
+  void sweepOrphanedStaging(uid);
+  void runPendingDriveDeletes(uid);
+  void maybeRunAutomaticBackup(uid);
 
   if (user.isAnonymous) {
     // populated once the vehicle list lands (handleVehicleList → syncEntryWatch)

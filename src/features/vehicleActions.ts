@@ -8,6 +8,7 @@ import { localFlags } from '../data/localFlags';
 import type { VehicleInput } from '../data/schema/vehicle';
 import type { VehiclePatch, VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
+import { cleanupVehicleReceipts } from './driveCleanup';
 import { adapter, getRepos } from './runtime';
 import { reportNonFatal } from './reporting';
 
@@ -75,6 +76,9 @@ export function deleteNameMatches(vehicle: VehicleRecord, typed: string): boolea
 
 export async function deleteVehicle(id: string): Promise<void> {
   const uid = useAppStore.getState().user?.uid;
+  // DRV-14: Drive receipt files/folder go first; a Drive failure never
+  // blocks the Firestore delete (cleanup queues retries and never throws).
+  if (uid) await cleanupVehicleReceipts(uid, id);
   try {
     await guardedWrite(getRepos().vehicles.delete(id));
   } catch (e) {

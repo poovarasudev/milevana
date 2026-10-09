@@ -256,3 +256,69 @@ production usage numbers before v1 launch.
 Gate G2 for tab 4 does not pass cleanly at this model: RPT-04 and RPT-12 are
 recorded as implemented to the cheapest available design with the marginal
 breach flagged for re-check on real telemetry.
+
+---
+
+# DRV-02 — Drive, backup, restore and export quota budget (gate G2, tab 5)
+
+Same method and threshold (DR-20: ≤ 25,000 reads and ≤ 10,000 writes/day at
+500 DAU). Session model unchanged: 2 vehicles/user, ~40 stored entries,
+~6 logged/day, Android-first with a durable cache. Drive API calls and
+AsyncStorage queue/cache writes are outside Firestore quota and are not
+counted.
+
+## Per-operation counts
+
+| Operation | Reads | Writes | Notes |
+| --- | --- | --- | --- |
+| Manual backup (V vehicles, N entries, R reminders, T templates) | 1 + V + N + R + T cold; ≈0 warm | 1 | `getUser` (folder ids) + `listOwned` + full subcollection scans — all served from the durable cache after the first run; the single write is the `drive` map merge (`lastBackupAt`, folder ids). |
+| Automatic backup | same as manual | 1 | At most once per interval (default weekly; 0.14/user/day). `maybeRunAutomaticBackup` itself costs 1 `getUser` + 1 local flag read per app open — negligible. |
+| Restore (V vehicles, N+R+T children restored) | 1 + V + (N + R + T) merge-scan + (N + R + T) rules gets | V + N + R + T + 1 | `listOwned` + per-vehicle child lists for keep/replace merge; each child write bills the `vehicleData(vid)` rules read. Commits batch ≤500 ops (OQ-35). Settings patch is one `updateDoc`. |
+| CSV export, one vehicle | 1 + E_v cold; ≈0 warm | 0 | `vehicles.get` + `entries.list`. |
+| CSV export, all vehicles | V + N cold; ≈0 warm | 0 | Same reads as a backup minus the user doc. |
+| Receipt upload status write | 2 | 1 | `entries.get` + `vehicleData` rules read + `updateDoc` merge (status/driveFileId/uploaderUids). At most 2 updates per receipt (queued → uploaded/failed). |
+| Pending Drive delete retry | 0 | 0 | Local flag queue + Drive API calls only. |
+| Restore review (no apply) | 1 + V + (N + R + T over vehicles present both sides) | 0 | `reviewBackup` diffs child sets for vehicles that exist locally to classify `same`/`differs`; `missing`/`not-yours` vehicles cost no child reads. |
+
+## Daily projection (500 DAU)
+
+Assumptions: automatic backup weekly by default (≈0.14 run/user/day) plus
+occasional manual backups (≈0.06/user/day) → 0.2 backup runs/user/day, warm
+cache; restores are rare (≈1% of users/day, new-device flow) with the
+session-model 40 entries + ~5 reminders/templates; CSV export ≈0.1/user/day
+warm; ≈0.5 receipt uploads/user/day.
+
+| Driver | Reads/day | Writes/day |
+| --- | --- | --- |
+| Backups (0.2/user/day, warm) | ≈0 billed (cache) + 500 × 0.2 × 1 getUser = 100 | 500 × 0.2 × 1 = 100 |
+| Restores (5/day, ≈90 reads + 48 writes each) | ≈450 | ≈240 |
+| CSV export (0.1/user/day, warm; cold worst ≈+2,050) | ≈200 | 0 |
+| Receipt status writes (0.5/user/day × 2 updates worst case) | 500 × 0.5 × 2 × 2 = 1,000 | 500 × 0.5 × 2 = 500 |
+| **Drive-phase total** | **≈ 1,750** | **≈ 840** |
+| **Foundation + Logging + Reminders + Reports carry-over** | **≈ 26,650** | **≈ 5,700** |
+| **Combined** | **≈ 28,400** | **≈ 6,540** |
+
+At 100 DAU the Drive-phase increment is ≈ 350 reads and ≈ 170 writes
+(combined ≈ 5,650 / ≈ 1,320).
+
+## Verdict
+
+**Drive-phase increment: PASS** — ≈1,750 reads / ≈840 writes/day at 500 DAU
+is well under any reasonable share; backups and exports are cache-first by
+design (they reuse the warm entry set, so steady-state billing is near zero)
+and restores amortize to a handful of users per day.
+
+**Combined: still fails reads, marginally.** ≈28,400 is ~114% of the 25,000
+DR-20 share, driven by the pre-existing ~98% carry-over entering Reports —
+the DRV increment adds ~6% of that share. Writes stay ≈6,540 (~65%).
+
+Per DRV-02 AC #3, DRV-08 and DRV-10 depend on this gate. The breach is the
+same one recorded under RPT-01 (carry-over, not a Drive regression); DRV-08
+and DRV-10 are recorded as implemented with the flag carried forward — the
+recommended re-check is production telemetry before v1 launch, and the
+levers listed under RPT-01 (re-weighing the DR-20 share against real usage,
+or an aggregate doc) remain the available moves.
+
+Gate G2 for tab 5 does not pass cleanly at this model: DRV-08 and DRV-10 are
+recorded as implemented with the marginal breach flagged for re-check on
+real telemetry.

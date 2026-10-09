@@ -116,6 +116,12 @@ interface AppState {
   // vehicle flags
   deleteFailedIds: string[];
 
+  // receipt upload queue (DRV-12 read model)
+  /** Attachments waiting to upload to Drive. */
+  receiptQueuePending: number;
+  /** True when a queued upload last failed with Drive 'storage-full'. */
+  receiptStorageFull: boolean;
+
   // patch helper — actions live in the feature modules
   set: (patch: Partial<AppState>) => void;
 }
@@ -167,6 +173,8 @@ const initial: Omit<AppState, 'set'> = {
   signingOut: false,
   signOutPending: null,
   deleteFailedIds: [],
+  receiptQueuePending: 0,
+  receiptStorageFull: false,
 };
 
 export const useAppStore = create<AppState>((set) => ({

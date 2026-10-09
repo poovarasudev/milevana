@@ -167,8 +167,9 @@ export class FakeAdapter implements FirebaseAdapter {
     this.connCbs.push(cb);
     return () => { this.connCbs = this.connCbs.filter((x) => x !== cb); };
   }
-  isOnline(): boolean { return true; }
-  setOnline(online: boolean): void { this.connCbs.forEach((cb) => cb(online)); }
+  online = true;
+  isOnline(): boolean { return this.online; }
+  setOnline(online: boolean): void { this.online = online; this.connCbs.forEach((cb) => cb(online)); }
 
   currentUser(): AuthUser | null { return this.user; }
   onAuthStateChanged(cb: (u: AuthUser | null) => void): Unsubscribe {

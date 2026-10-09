@@ -23,7 +23,7 @@ import { useTheme } from '../theme';
 import { EntryShell, readonlyReason, useSharedFields } from './EntryShell';
 import type { EntryFormProps } from './types';
 
-export function FuelForm({ vehicle, entry, entries, readOnly, saving, saveError, onSubmit, onDelete }: EntryFormProps) {
+export function FuelForm({ vehicle, entry, entries, readOnly, saving, saveError, attachmentsNode, onSubmit, onDelete }: EntryFormProps) {
   const th = useTheme();
   const settings = useSettings();
   const shared = useSharedFields(entry);
@@ -116,6 +116,7 @@ export function FuelForm({ vehicle, entry, entries, readOnly, saving, saveError,
       saving={saving}
       error={err ?? saveError}
       submitLabel={entry ? t('common.save') : t('entryForm.saveEntry')}
+      attachments={attachmentsNode}
       onSubmit={submit}
       onDelete={onDelete}
     >

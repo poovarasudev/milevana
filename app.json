@@ -50,7 +50,15 @@
       "@react-native-google-signin/google-signin",
       "@react-native-firebase/crashlytics",
       "@react-native-community/datetimepicker",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": false,
+          "cameraPermission": "Allow Milevana to take receipt photos."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

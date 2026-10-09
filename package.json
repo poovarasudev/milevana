@@ -15,12 +15,18 @@
     "@react-native-google-signin/google-signin": "^16.1.5",
     "expo": "~57.0.27",
     "expo-constants": "~57.0.21",
+    "expo-document-picker": "~57.0.3",
+    "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
+    "expo-image-manipulator": "~57.0.21",
+    "expo-image-picker": "~57.0.20",
+    "expo-intent-launcher": "~57.0.1",
     "expo-linking": "~57.0.12",
     "expo-localization": "~57.0.2",
     "expo-notifications": "~57.0.22",
     "expo-router": "~57.0.25",
+    "expo-sharing": "~57.0.22",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
@@ -86,9 +92,14 @@
       "\\.android\\.test\\."
     ],
     "moduleNameMapper": {
-      "data/firebase$": "<rootDir>/src/data/firebase.ts",
       "data/notifications$": "<rootDir>/src/data/notifications.ts",
-      "^@react-native-async-storage/async-storage$": "@react-native-async-storage/async-storage/jest/async-storage-mock"
+      "(^|[/.])client$": "<rootDir>/src/data/drive/client.ts",
+      "(^|[/.])localFiles$": "<rootDir>/src/data/localFiles.ts",
+      "(^|[/.])receiptPick$": "<rootDir>/src/data/receiptPick.ts",
+      "(^|[/.])shareOut$": "<rootDir>/src/data/shareOut.ts",
+      "(^|[/.])receiptView$": "<rootDir>/src/features/receiptView.ts",
+      "^@react-native-async-storage/async-storage$": "@react-native-async-storage/async-storage/jest/async-storage-mock",
+      "(^|[/.])firebase$": "<rootDir>/src/data/firebase.ts"
     }
   },
   "private": true
