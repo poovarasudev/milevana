@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useStore } from '../src/data/store';
+import { Shell } from '../src/ui/Shell';
 import { useTheme } from '../src/ui/theme';
 
 export default function RootLayout() {
@@ -11,14 +12,16 @@ export default function RootLayout() {
   const hydrated = useStore((s) => s.hydrated);
   const t = useTheme();
   const mode = useStore((s) => s.settings.theme);
-  if (!loaded || !hydrated) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
+  if (!loaded || !hydrated) return <Shell><View style={{ flex: 1, backgroundColor: t.bg }} /></Shell>;
   return (
     <SafeAreaProvider>
       <StatusBar style={t.bg === '#0F141B' ? 'light' : mode === 'light' ? 'dark' : 'auto'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
-        <Stack.Screen name="switcher" options={{ presentation: 'transparentModal', animation: 'fade' }} />
-        <Stack.Screen name="add" options={{ presentation: 'transparentModal', animation: 'fade' }} />
-      </Stack>
+      <Shell>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
+          <Stack.Screen name="switcher" options={{ presentation: 'transparentModal', animation: 'fade' }} />
+          <Stack.Screen name="add" options={{ presentation: 'transparentModal', animation: 'fade' }} />
+        </Stack>
+      </Shell>
     </SafeAreaProvider>
   );
 }

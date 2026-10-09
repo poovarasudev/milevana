@@ -4,12 +4,12 @@ import { useStore } from '../data/store';
 const light = {
   bg: '#F7F9FC', card: '#FFFFFF', text: '#1F2937', muted: '#6B7789', primary: '#4C7BD9',
   primarySoft: '#EAF1FC', primaryOn: '#FFFFFF', border: '#E2E8F0', tile: '#EFF3F8', divider: '#E6EBF2',
-  income: '#2E8B7A', incomeSoft: '#E6F4F1', danger: '#C2410C',
+  income: '#2E8B7A', incomeSoft: '#E6F4F1', danger: '#C2410C', frame: '#E9EDF4',
 };
 const dark: typeof light = {
   bg: '#0F141B', card: '#171E28', text: '#E6EBF2', muted: '#97A3B6', primary: '#7FA3EA',
   primarySoft: '#1E2B45', primaryOn: '#0F141B', border: '#283142', tile: '#212A38', divider: '#222B3A',
-  income: '#5CC2AE', incomeSoft: '#17302B', danger: '#F59E6B',
+  income: '#5CC2AE', incomeSoft: '#17302B', danger: '#F59E6B', frame: '#090D13',
 };
 export type Theme = typeof light;
 

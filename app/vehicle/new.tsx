@@ -49,7 +49,7 @@ export default function NewVehicle() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
             {TYPES.map((x) => (
               <Pressable key={x} accessibilityRole="button" accessibilityState={{ selected: field.value === x }} onPress={() => field.onChange(x)}
-                style={{ width: '30%', paddingVertical: 14, alignItems: 'center', gap: 4, borderRadius: 16, borderWidth: 1, backgroundColor: field.value === x ? t.primarySoft : t.card, borderColor: field.value === x ? t.primary : t.border }}>
+                style={{ flexGrow: 1, flexBasis: '30%', paddingVertical: 14, alignItems: 'center', gap: 4, borderRadius: 16, borderWidth: 1, backgroundColor: field.value === x ? t.primarySoft : t.card, borderColor: field.value === x ? t.primary : t.border }}>
                 <Icon name={VEHICLE_ICON[x]} color={field.value === x ? t.primary : t.text} />
                 <T size={13} weight="semi" color={field.value === x ? t.primary : t.text}>{cap(x)}</T>
               </Pressable>

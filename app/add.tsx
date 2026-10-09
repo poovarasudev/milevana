@@ -25,7 +25,7 @@ export default function AddSheet() {
             return (
               <Pressable key={x} disabled={!ok} accessibilityRole="button" accessibilityState={{ disabled: !ok }}
                 onPress={() => { router.back(); router.push({ pathname: '/entry/[type]', params: { type: x } }); }}
-                style={{ width: '30.5%', alignItems: 'center', gap: 8, paddingVertical: 16, borderRadius: 18, backgroundColor: t.card, borderWidth: 1, borderColor: t.divider, opacity: ok ? 1 : 0.45 }}>
+                style={{ flexGrow: 1, flexBasis: '30%', alignItems: 'center', gap: 8, paddingVertical: 16, borderRadius: 18, backgroundColor: t.card, borderWidth: 1, borderColor: t.divider, opacity: ok ? 1 : 0.45 }}>
                 <Icon name={ENTRY_ICON[x]} color={t.primary} />
                 <T size={13} weight="semi">{ENTRY_LABEL[x]}</T>
                 {!ok && <T size={10} color={t.muted}>Soon</T>}
