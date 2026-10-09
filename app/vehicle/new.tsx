@@ -17,7 +17,7 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1).replace('cng', 'CNG')
 export default function NewVehicle() {
   const t = useTheme();
   const addVehicle = useStore((s) => s.addVehicle);
-  const names = useStore((s) => s.vehicles.map((v) => v.name.toLowerCase()));
+  const vehicles = useStore((s) => s.vehicles);
   const [more, setMore] = useState(false);
   const { control, handleSubmit, setError, formState: { errors } } = useForm<VehicleForm>({
     resolver: zodResolver(vehicleSchema),
@@ -25,7 +25,7 @@ export default function NewVehicle() {
   });
 
   const onSave = handleSubmit((v) => {
-    if (names.includes(v.name.trim().toLowerCase())) {
+    if (vehicles.some((x) => x.name.toLowerCase() === v.name.trim().toLowerCase())) {
       setError('name', { message: 'You already have a vehicle with this name' });
       return;
     }

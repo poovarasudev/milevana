@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { useStore } from '../src/data/store';
 import { formatNumber } from '../src/domain/money';
@@ -8,7 +9,8 @@ import { useTheme } from '../src/ui/theme';
 
 export default function Switcher() {
   const t = useTheme();
-  const vehicles = useStore((s) => s.vehicles.filter((v) => !v.archived));
+  const allVehicles = useStore((s) => s.vehicles);
+  const vehicles = useMemo(() => allVehicles.filter((v) => !v.archived), [allVehicles]);
   const selected = useStore((s) => s.selectedVehicleId);
   const select = useStore((s) => s.selectVehicle);
   return (
