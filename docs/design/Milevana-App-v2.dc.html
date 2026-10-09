@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EEF1F5;font-family:Manrope,system-ui,sans-serif;color:#1F2937;-webkit-font-smoothing:antialiased}
+a{color:#4C7BD9;text-decoration:none}a:hover{color:#9DB8EA}
+</style>
+</helmet>
+<section style="padding:80px;display:flex;flex-direction:column;gap:72px;font-family:Manrope,system-ui,sans-serif">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">MILEVANA V1 · ANDROID</div>
+    <div style="font-size:44px;font-weight:600;letter-spacing:-0.03em;line-height:1.05">Mobile app UI · Blue</div>
+    <div style="font-size:14px;font-weight:500;color:#6B7789;max-width:640px">Onboarding, the four-tab shell, entry logging, and account flows. Scoped to the selected vehicle; INR, km and litres by default.</div>
+  </div>
+
+  <!-- ROW 1: ONBOARDING -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em">Onboarding</div>
+    <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">01 · Connect to get started (offline first launch)</div>
+        <div data-screen-label="01 Connect" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;gap:24px;text-align:center">
+            <div style="width:120px;height:120px;border-radius:9999px;background:#EFF3F8;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:56px;height:56px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/cloud-cross-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/cloud-cross-bold.svg) center/contain no-repeat"></span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1">Connect to get started</div>
+              <div style="font-size:14px;font-weight:500;line-height:1.5;color:#6B7789;text-wrap:pretty">Milevana needs the internet once to set up. After that, everything works offline.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#EAF1FC;padding:8px 16px;border-radius:9999px">
+              <span aria-hidden="true" style="display:block;flex:none;width:16px;height:16px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/refresh-circle-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/refresh-circle-bold.svg) center/contain no-repeat"></span>
+              <span style="font-size:12px;font-weight:600;color:#4C7BD9">Retrying automatically</span>
+            </div>
+          </div>
+          <div style="padding:0 24px 40px">
+            <div style="background:#EFF3F8;color:#1F2937;border-radius:12px;padding:15px 24px;text-align:center;font-size:14px;font-weight:600">Try now</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">02 · Add your first vehicle</div>
+        <div data-screen-label="02 Welcome" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="flex:1;display:flex;flex-direction:column;padding:48px 24px 0;gap:32px">
+            <div style="width:96px;height:96px;border-radius:9999px;background:#EAF1FC;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:48px;height:48px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/wheel-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/wheel-bold.svg) center/contain no-repeat"></span></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#4C7BD9">WELCOME TO MILEVANA</div>
+              <div style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1">Add your first vehicle</div>
+              <div style="font-size:14px;font-weight:500;line-height:1.5;color:#6B7789;text-wrap:pretty">No sign-in needed. Track fuel, services and running costs, then link Google whenever you want a backup.</div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:20px">
+              <sc-for list="{{ principles }}" as="p" hint-placeholder-count="3">
+                <div style="display:flex;gap:16px;align-items:flex-start">
+                  <div style="width:40px;height:40px;flex:none;border-radius:9999px;background:#EAF1FC;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/{{ p.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ p.icon }}.svg) center/contain no-repeat"></span></div>
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <div style="font-size:14px;font-weight:600">{{ p.title }}</div>
+                    <div style="font-size:12px;font-weight:500;line-height:1.45;color:#6B7789">{{ p.body }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:0 24px 40px">
+            <div style="background:#4C7BD9;color:#FFFFFF;border-radius:12px;padding:15px 24px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px;font-weight:600;box-shadow:none"><span>Add vehicle</span><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:currentColor;-webkit-mask:url(https://api.iconify.design/solar/arrow-right-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/arrow-right-bold.svg) center/contain no-repeat"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">03 · Add vehicle form</div>
+        <div data-screen-label="03 Add vehicle" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px;display:flex;align-items:center">
+            <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center;margin-left:-8px"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/solar/arrow-left-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/arrow-left-linear.svg) center/contain no-repeat"></span></div>
+            <div style="flex:1;text-align:center;padding-right:32px;font-size:20px;font-weight:600;letter-spacing:-0.01em">New vehicle</div>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:8px 24px 120px;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">NAME</div>
+              <div style="height:56px;background:#EFF3F8;border-radius:12px;padding:0 20px;display:flex;align-items:center;font-size:18px;font-weight:600;box-shadow:0 0 0 2px rgba(76,123,217,0.25)">Swift Dzire</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">TYPE</div>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+                <sc-for list="{{ vehicleTypes }}" as="t" hint-placeholder-count="6">
+                  <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:14px 8px;border-radius:12px;background:#EAF1FC;border:2px solid #4C7BD9;display:flex;flex-direction:column;align-items:center;gap:6px"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/{{ t.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ t.icon }}.svg) center/contain no-repeat"></span><span style="font-size:12px;font-weight:600;color:#4C7BD9">{{ t.label }}</span></div>
+                  </sc-if>
+                  <sc-if value="{{ t.inactive }}" hint-placeholder-val="{{ true }}">
+                    <div style="padding:14px 8px;border-radius:12px;background:#EFF3F8;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:6px"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/{{ t.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ t.icon }}.svg) center/contain no-repeat"></span><span style="font-size:12px;font-weight:600;color:#6B7789">{{ t.label }}</span></div>
+                  </sc-if>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">FUEL TYPES</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <sc-for list="{{ fuelTypes }}" as="f" hint-placeholder-count="5">
+                  <sc-if value="{{ f.active }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#EAF1FC;border:1px solid rgba(76,123,217,0.15);padding:8px 16px;border-radius:9999px;display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="display:block;flex:none;width:16px;height:16px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/check-read-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/check-read-bold.svg) center/contain no-repeat"></span><span style="font-size:12px;font-weight:600;color:#4C7BD9">{{ f.label }}</span></div>
+                  </sc-if>
+                  <sc-if value="{{ f.inactive }}" hint-placeholder-val="{{ true }}">
+                    <div style="background:#EFF3F8;border:1px solid transparent;padding:8px 16px;border-radius:9999px;display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:#6B7789">{{ f.label }}</span></div>
+                  </sc-if>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">CURRENT ODOMETER</div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;height:56px;background:#EFF3F8;border-radius:12px;padding:0 20px;display:flex;align-items:center;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">47,860</div>
+                <div style="display:flex;background:#EFF3F8;border-radius:12px;padding:4px;gap:2px">
+                  <div style="padding:0 14px;display:flex;align-items:center;border-radius:12px;background:#FFFFFF;font-size:14px;font-weight:600;color:#4C7BD9">km</div>
+                  <div style="padding:0 12px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#6B7789">mi</div>
+                  <div style="padding:0 12px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#6B7789">hrs</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">COLOUR</div>
+              <div style="display:flex;gap:12px">
+                <div style="width:36px;height:36px;border-radius:9999px;background:#4C7BD9;box-shadow:0 0 0 3px #F7F9FC,0 0 0 5px #4C7BD9"></div>
+                <div style="width:36px;height:36px;border-radius:9999px;background:#2E8B7A"></div>
+                <div style="width:36px;height:36px;border-radius:9999px;background:#1F2937"></div>
+                <div style="width:36px;height:36px;border-radius:9999px;background:#6B7789"></div>
+                <div style="width:36px;height:36px;border-radius:9999px;background:#9DB8EA"></div>
+                <div style="width:36px;height:36px;border-radius:9999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E2E8F0"></div>
+              </div>
+            </div>
+            <div style="background:#EFF3F8;border-radius:12px;padding:20px;display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">More details</span><span style="font-size:12px;font-weight:500;color:#6B7789">Make, model, year, plate · optional</span></div>
+              <span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/alt-arrow-down-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/alt-arrow-down-linear.svg) center/contain no-repeat"></span>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 24px 36px;background:#F7F9FC;border-top:1px solid #E2E8F0">
+            <div style="background:#4C7BD9;color:#FFFFFF;border-radius:12px;padding:15px 24px;text-align:center;font-size:18px;font-weight:600;box-shadow:none">Save vehicle</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ROW 2: CORE -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em">Shell &amp; logging</div>
+    <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">04 · Dashboard</div>
+        <div data-screen-label="04 Dashboard" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:44px;height:44px;border-radius:9999px;background:#EAF1FC;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:22px;height:22px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/wheel-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/wheel-bold.svg) center/contain no-repeat"></span></div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:20px;font-weight:600;letter-spacing:-0.01em">Swift Dzire</span><span aria-hidden="true" style="display:block;flex:none;width:18px;height:18px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/alt-arrow-down-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/alt-arrow-down-bold.svg) center/contain no-repeat"></span></div>
+                <span style="font-size:12px;font-weight:500;color:#6B7789;font-variant-numeric:tabular-nums">TN 09 AB 1234 · 48,212 km</span>
+              </div>
+            </div>
+            <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:22px;height:22px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/solar/bell-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/bell-bold.svg) center/contain no-repeat"></span></div>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:0 24px 104px;display:flex;flex-direction:column;gap:16px">
+            <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:8px;background:#EFF3F8;border-radius:12px;padding:12px 16px">
+                <span aria-hidden="true" style="display:block;flex:none;width:18px;height:18px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/cloud-cross-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/cloud-cross-bold.svg) center/contain no-repeat"></span>
+                <span style="font-size:12px;font-weight:600;color:#1F2937">Offline · 1 entry will sync when you reconnect</span>
+              </div>
+            </sc-if>
+            <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="align-self:flex-start;background:#EAF1FC;color:#4C7BD9;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:600;letter-spacing:0.12em">OCTOBER</div>
+                  <div style="font-size:44px;font-weight:600;letter-spacing:-0.03em;line-height:1.05;font-variant-numeric:tabular-nums">₹8,450</div>
+                  <div style="font-size:14px;font-weight:500;color:#6B7789">Spent this month</div>
+                </div>
+                <div style="text-align:right;display:flex;flex-direction:column;gap:2px;padding-top:4px">
+                  <span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">₹6.81</span>
+                  <span style="font-size:12px;font-weight:500;color:#6B7789">per km</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:600">vs ₹10,200 Sep avg</span><span style="font-size:12px;font-weight:600;color:#4C7BD9">83%</span></div>
+                <div style="height:10px;border-radius:9999px;background:#E2E8F0;overflow:hidden"><div style="width:83%;height:100%;background:#4C7BD9;border-radius:9999px"></div></div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div style="background:#FFFFFF;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:12px">
+                <div style="width:40px;height:40px;border-radius:9999px;background:#EAF1FC;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/gas-station-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/gas-station-bold.svg) center/contain no-repeat"></span></div>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:500;color:#6B7789">Last mileage</span><span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">18.6 km/l</span></div>
+              </div>
+              <div style="background:#FFFFFF;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:12px">
+                <div style="width:40px;height:40px;border-radius:9999px;background:#EFF3F8;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/solar/sledgehammer-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/sledgehammer-bold.svg) center/contain no-repeat"></span></div>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:500;color:#6B7789">Next service</span><span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">in 1,240 km</span></div>
+              </div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Recent</span><span style="font-size:14px;font-weight:600;color:#4C7BD9">See all</span></div>
+              <sc-for list="{{ recent }}" as="e" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:40px;height:40px;flex:none;border-radius:9999px;background:{{ e.tileBg }};display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:{{ e.tileFg }};-webkit-mask:url(https://api.iconify.design/{{ e.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ e.icon }}.svg) center/contain no-repeat"></span></div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                    <span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</span>
+                    <span style="font-size:12px;font-weight:500;color:#6B7789;font-variant-numeric:tabular-nums">{{ e.sub }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <sc-if value="{{ e.pending }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="display:block;flex:none;width:14px;height:14px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/refresh-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/refresh-bold.svg) center/contain no-repeat"></span></sc-if>
+                    <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ e.amount }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:absolute;right:24px;bottom:100px;width:56px;height:56px;border-radius:9999px;background:#4C7BD9;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(76,123,217,0.28)"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#FFFFFF;-webkit-mask:url(https://api.iconify.design/solar/add-circle-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/add-circle-bold.svg) center/contain no-repeat"></span></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:80px;padding-bottom:8px;box-sizing:border-box;background:rgba(248,248,251,0.85);backdrop-filter:blur(20px);border-top:1px solid #E2E8F0;display:flex;justify-content:space-around;align-items:center">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#4C7BD9">Dashboard</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">History</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">Reports</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">More</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">05 · Vehicle switcher</div>
+        <div data-screen-label="05 Switcher" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="position:absolute;inset:0;background:rgba(31,41,55,0.32)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:20px 20px 0 0;padding:12px 24px 40px;display:flex;flex-direction:column;gap:20px">
+            <div style="align-self:center;width:40px;height:5px;border-radius:9999px;background:#E2E8F0"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:20px;font-weight:600;letter-spacing:-0.01em">Your vehicles</span><span style="font-size:14px;font-weight:600;color:#4C7BD9">Manage</span></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ vehicles }}" as="v" hint-placeholder-count="3">
+                <sc-if value="{{ v.active }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:20px;border-radius:12px;background:#EAF1FC;border:2px solid #4C7BD9;display:flex;align-items:center;gap:16px">
+                    <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:{{ v.color }};-webkit-mask:url(https://api.iconify.design/{{ v.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ v.icon }}.svg) center/contain no-repeat"></span></div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">{{ v.name }}</span><span style="font-size:12px;font-weight:500;color:#4C7BD9">{{ v.sub }}</span></div>
+                    <div style="width:24px;height:24px;border-radius:9999px;background:#4C7BD9;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:16px;height:16px;background-color:#FFFFFF;-webkit-mask:url(https://api.iconify.design/solar/check-read-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/check-read-bold.svg) center/contain no-repeat"></span></div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ v.inactive }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:20px;border-radius:12px;background:#EFF3F8;border:2px solid transparent;display:flex;align-items:center;gap:16px">
+                    <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:{{ v.color }};-webkit-mask:url(https://api.iconify.design/{{ v.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ v.icon }}.svg) center/contain no-repeat"></span></div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">{{ v.name }}</span><span style="font-size:12px;font-weight:500;color:#6B7789">{{ v.sub }}</span></div>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+            <div style="background:#EFF3F8;color:#1F2937;border-radius:12px;padding:13px 20px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:currentColor;-webkit-mask:url(https://api.iconify.design/solar/add-circle-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/add-circle-bold.svg) center/contain no-repeat"></span>Add vehicle</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">06 · Add sheet</div>
+        <div data-screen-label="06 Add sheet" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="position:absolute;inset:0;background:rgba(31,41,55,0.32)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:20px 20px 0 0;padding:12px 24px 40px;display:flex;flex-direction:column;gap:20px">
+            <div style="align-self:center;width:40px;height:5px;border-radius:9999px;background:#E2E8F0"></div>
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:20px;font-weight:600;letter-spacing:-0.01em">Add to Swift Dzire</span><span style="font-size:12px;font-weight:500;color:#6B7789;font-variant-numeric:tabular-nums">Last odometer 48,212 km</span></div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+              <sc-for list="{{ addTypes }}" as="a" hint-placeholder-count="6">
+                <div style="background:#EFF3F8;border-radius:12px;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:10px">
+                  <div style="width:48px;height:48px;border-radius:9999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/{{ a.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ a.icon }}.svg) center/contain no-repeat"></span></div>
+                  <span style="font-size:14px;font-weight:600">{{ a.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">07 · Log fuel</div>
+        <div data-screen-label="07 Log fuel" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px;display:flex;align-items:center">
+            <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center;margin-left:-8px"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/solar/arrow-left-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/arrow-left-linear.svg) center/contain no-repeat"></span></div>
+            <div style="flex:1;text-align:center;padding-right:32px;font-size:20px;font-weight:600;letter-spacing:-0.01em">Fuel</div>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:8px 24px 120px;display:flex;flex-direction:column;gap:20px">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:56px;background:#EFF3F8;border-radius:12px;padding:0 16px;display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/calendar-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/calendar-bold.svg) center/contain no-repeat"></span><span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">05/10/2026</span></div>
+              <div style="height:56px;background:#EFF3F8;border-radius:12px;padding:0 16px;display:flex;align-items:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">9:20</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">ODOMETER</div>
+              <div style="height:56px;background:#EFF3F8;border-radius:12px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 0 0 2px rgba(76,123,217,0.25)"><span style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">48,212</span><span style="font-size:14px;font-weight:600;color:#6B7789">km</span></div>
+              <span style="font-size:12px;font-weight:500;color:#6B7789;font-variant-numeric:tabular-nums">+602 km since last fill</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <div style="background:#EAF1FC;border:1px solid rgba(76,123,217,0.15);padding:8px 16px;border-radius:9999px;display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="display:block;flex:none;width:16px;height:16px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/gas-station-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/gas-station-bold.svg) center/contain no-repeat"></span><span style="font-size:12px;font-weight:600;color:#4C7BD9">Petrol</span></div>
+              <div style="background:#EFF3F8;border:1px solid transparent;padding:8px 16px;border-radius:9999px;display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="display:block;flex:none;width:16px;height:16px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/gas-station-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/gas-station-bold.svg) center/contain no-repeat"></span><span style="font-size:12px;font-weight:600;color:#6B7789">CNG</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">QUANTITY</div>
+                <div style="height:56px;background:#EFF3F8;border-radius:12px;padding:0 16px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">32.40</span><span style="font-size:14px;font-weight:600;color:#6B7789">L</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">PRICE / L</div>
+                <div style="height:56px;background:#EFF3F8;border-radius:12px;padding:0 16px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:600;color:#6B7789">₹</span><span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">105.00</span></div>
+              </div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Full tank</span><span style="font-size:12px;font-weight:500;color:#6B7789">Needed to calculate mileage</span></div>
+                <div style="width:48px;height:28px;border-radius:9999px;background:#4C7BD9;padding:3px;box-sizing:border-box;display:flex;justify-content:flex-end"><div style="width:22px;height:22px;border-radius:9999px;background:#FFFFFF"></div></div>
+              </div>
+              <div style="height:1px;background:#E2E8F0"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Missed a fill before this</span><span style="font-size:12px;font-weight:500;color:#6B7789">Skips mileage for this interval</span></div>
+                <div style="width:48px;height:28px;border-radius:9999px;background:#E2E8F0;padding:3px;box-sizing:border-box;display:flex"><div style="width:22px;height:22px;border-radius:9999px;background:#FFFFFF"></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 24px 36px;background:#F7F9FC;border-top:1px solid #E2E8F0;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;font-weight:500;color:#6B7789">Total</span><span style="font-size:30px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">₹3,402.00</span></div>
+            <div style="background:#4C7BD9;color:#FFFFFF;border-radius:12px;padding:15px 24px;text-align:center;font-size:18px;font-weight:600;box-shadow:none">Save entry</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ROW 3: HISTORY / REPORTS -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em">History &amp; reports</div>
+    <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">08 · History</div>
+        <div data-screen-label="08 History" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;flex-direction:column"><span style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1">History</span><span style="font-size:14px;font-weight:500;color:#6B7789">Swift Dzire · 86 entries</span></div>
+            <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:22px;height:22px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/solar/magnifer-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/magnifer-linear.svg) center/contain no-repeat"></span></div>
+          </div>
+          <div style="display:flex;gap:8px;padding:0 24px 16px;overflow:hidden">
+            <div style="flex:none;background:#EAF1FC;border:1px solid rgba(76,123,217,0.15);padding:8px 16px;border-radius:9999px;font-size:12px;font-weight:600;color:#4C7BD9">All</div>
+            <sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="5">
+              <div style="flex:none;background:#EFF3F8;border:1px solid transparent;padding:8px 16px;border-radius:9999px;font-size:12px;font-weight:600;color:#6B7789">{{ c }}</div>
+            </sc-for>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:0 24px 104px;display:flex;flex-direction:column;gap:24px">
+            <sc-for list="{{ history }}" as="g" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">{{ g.month }}</span><span style="font-size:12px;font-weight:600;color:#1F2937;font-variant-numeric:tabular-nums">{{ g.total }}</span></div>
+                <div style="background:#FFFFFF;border-radius:14px;padding:8px 20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column">
+                  <sc-for list="{{ g.items }}" as="e" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #EFF3F8">
+                      <div style="width:40px;height:40px;flex:none;border-radius:9999px;background:{{ e.tileBg }};display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:{{ e.tileFg }};-webkit-mask:url(https://api.iconify.design/{{ e.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ e.icon }}.svg) center/contain no-repeat"></span></div>
+                      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.title }}</span><span style="font-size:12px;font-weight:500;color:#6B7789;font-variant-numeric:tabular-nums">{{ e.sub }}</span></div>
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <sc-if value="{{ e.pending }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="display:block;flex:none;width:14px;height:14px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/refresh-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/refresh-bold.svg) center/contain no-repeat"></span></sc-if>
+                        <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ e.amount }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position:absolute;right:24px;bottom:100px;width:56px;height:56px;border-radius:9999px;background:#4C7BD9;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(76,123,217,0.28)"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#FFFFFF;-webkit-mask:url(https://api.iconify.design/solar/add-circle-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/add-circle-bold.svg) center/contain no-repeat"></span></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:80px;padding-bottom:8px;box-sizing:border-box;background:rgba(248,248,251,0.85);backdrop-filter:blur(20px);border-top:1px solid #E2E8F0;display:flex;justify-content:space-around;align-items:center">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">Dashboard</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#4C7BD9">History</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">Reports</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">More</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">09 · Reports</div>
+        <div data-screen-label="09 Reports" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px;display:flex;flex-direction:column"><span style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1">Reports</span><span style="font-size:14px;font-weight:500;color:#6B7789">Swift Dzire · May – Oct 2026</span></div>
+          <div style="display:flex;gap:8px;padding:0 24px 16px">
+            <div style="background:#EFF3F8;padding:8px 16px;border-radius:9999px;font-size:12px;font-weight:600;color:#6B7789;border:1px solid transparent">3M</div>
+            <div style="background:#EAF1FC;padding:8px 16px;border-radius:9999px;font-size:12px;font-weight:600;color:#4C7BD9;border:1px solid rgba(76,123,217,0.15)">6M</div>
+            <div style="background:#EFF3F8;padding:8px 16px;border-radius:9999px;font-size:12px;font-weight:600;color:#6B7789;border:1px solid transparent">1Y</div>
+            <div style="background:#EFF3F8;padding:8px 16px;border-radius:9999px;font-size:12px;font-weight:600;color:#6B7789;border:1px solid transparent">All</div>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:0 24px 104px;display:flex;flex-direction:column;gap:16px">
+            <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">MONTHLY SPEND</span><span style="font-size:30px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">₹58,640</span></div>
+                <div style="background:#EFF3F8;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">₹4.92 / km</div>
+              </div>
+              <div style="height:120px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="6">
+                  <div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px">
+                    <sc-if value="{{ b.peak }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:{{ b.h }};background:#4C7BD9;border-radius:8px 8px 0 0;box-shadow:none"></div></sc-if>
+                    <sc-if value="{{ b.normal }}" hint-placeholder-val="{{ true }}"><div style="width:100%;height:{{ b.h }};background:#E2E8F0;border-radius:8px 8px 0 0"></div></sc-if>
+                    <span style="font-size:12px;font-weight:500;color:#6B7789">{{ b.l }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:grid;grid-template-columns:1fr 1fr;row-gap:28px;column-gap:16px">
+              <sc-for list="{{ lifetime }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1;font-variant-numeric:tabular-nums">{{ s.v }}</span><span style="font-size:12px;font-weight:500;color:#6B7789">{{ s.l }}</span></div>
+              </sc-for>
+            </div>
+            <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Income vs cost</span><span style="font-size:14px;font-weight:600;color:#2E8B7A;font-variant-numeric:tabular-nums">+₹37,360</span></div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:600">Cost</span><span style="font-size:12px;font-weight:600;color:#4C7BD9;font-variant-numeric:tabular-nums">61% of income</span></div>
+                <div style="height:10px;border-radius:9999px;background:#E2E8F0;overflow:hidden"><div style="width:61%;height:100%;background:#4C7BD9;border-radius:9999px"></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:80px;padding-bottom:8px;box-sizing:border-box;background:rgba(248,248,251,0.85);backdrop-filter:blur(20px);border-top:1px solid #E2E8F0;display:flex;justify-content:space-around;align-items:center">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">Dashboard</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">History</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#4C7BD9">Reports</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">More</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ROW 4: ACCOUNT -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em">More, settings &amp; account</div>
+    <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">10 · More</div>
+        <div data-screen-label="10 More" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px"><span style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1">More</span></div>
+          <div style="flex:1;overflow:hidden;padding:0 24px 104px;display:flex;flex-direction:column;gap:16px">
+            <sc-if value="{{ notLinked }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#FFFFFF;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;gap:16px;align-items:flex-start">
+                  <div style="width:40px;height:40px;flex:none;border-radius:9999px;background:#EAF1FC;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:20px;height:20px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/shield-warning-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/shield-warning-bold.svg) center/contain no-repeat"></span></div>
+                  <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Your data isn't backed up</span><span style="font-size:12px;font-weight:500;line-height:1.45;color:#6B7789;text-wrap:pretty">Entries live only on this phone. Uninstalling now would erase them. Link Google to keep them safe.</span></div>
+                </div>
+                <div style="background:#4C7BD9;color:#FFFFFF;border-radius:12px;padding:13px 24px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:600;box-shadow:none"><img src="https://api.iconify.design/logos/google-icon.svg" alt="" style="display:block;width:18px;height:18px;background:#FFFFFF;border-radius:9999px;padding:3px">Link Google</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ linked }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#FFFFFF;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;align-items:center;gap:16px">
+                <div style="width:40px;height:40px;border-radius:9999px;background:#E2E8F0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">PS</div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Poovarasu Sekar</span><span style="font-size:12px;font-weight:500;color:#6B7789">Backed up 2 hours ago</span></div>
+                <span aria-hidden="true" style="display:block;flex:none;width:22px;height:22px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/cloud-check-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/cloud-check-bold.svg) center/contain no-repeat"></span>
+              </div>
+            </sc-if>
+            <div style="background:#FFFFFF;border-radius:14px;padding:8px 20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column">
+              <sc-for list="{{ moreItems }}" as="m" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:14px;padding:12px 0;min-height:48px;box-sizing:border-box">
+                  <div style="width:36px;height:36px;border-radius:9999px;background:#EFF3F8;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:18px;height:18px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/{{ m.icon }}.svg) center/contain no-repeat;mask:url(https://api.iconify.design/{{ m.icon }}.svg) center/contain no-repeat"></span></div>
+                  <span style="flex:1;font-size:14px;font-weight:600">{{ m.label }}</span>
+                  <sc-if value="{{ m.soon }}" hint-placeholder-val="{{ false }}"><span style="background:#EFF3F8;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:600;color:#6B7789">Coming soon</span></sc-if>
+                  <sc-if value="{{ m.meta }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:500;color:#6B7789">{{ m.meta }}</span></sc-if>
+                  <span aria-hidden="true" style="display:block;flex:none;width:18px;height:18px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/alt-arrow-right-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/alt-arrow-right-linear.svg) center/contain no-repeat"></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:80px;padding-bottom:8px;box-sizing:border-box;background:rgba(248,248,251,0.85);backdrop-filter:blur(20px);border-top:1px solid #E2E8F0;display:flex;justify-content:space-around;align-items:center">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/home-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">Dashboard</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/history-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">History</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/chart-2-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#6B7789">Reports</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span aria-hidden="true" style="display:block;flex:none;width:28px;height:28px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/menu-dots-bold.svg) center/contain no-repeat"></span><span style="font-size:10px;font-weight:600;color:#4C7BD9">More</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">11 · Settings</div>
+        <div data-screen-label="11 Settings" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:10px;border-radius:2px;background:#1F2937"></span><span style="width:24px;height:12px;border-radius:4px;border:1.5px solid #1F2937;box-sizing:border-box;padding:1.5px;display:flex"><span style="width:70%;background:#1F2937;border-radius:1px"></span></span></span></div>
+          <div style="padding:12px 24px 16px;display:flex;align-items:center">
+            <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center;margin-left:-8px"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#1F2937;-webkit-mask:url(https://api.iconify.design/solar/arrow-left-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/arrow-left-linear.svg) center/contain no-repeat"></span></div>
+            <div style="flex:1;text-align:center;padding-right:32px;font-size:20px;font-weight:600;letter-spacing:-0.01em">Settings</div>
+          </div>
+          <div style="flex:1;overflow:hidden;padding:8px 24px 40px;display:flex;flex-direction:column;gap:20px">
+            <div style="background:#FFFFFF;border-radius:14px;padding:8px 20px;box-shadow:0 1px 2px rgba(16,24,40,0.04);border:1px solid #E6EBF2;display:flex;flex-direction:column">
+              <sc-for list="{{ settings }}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;min-height:48px;box-sizing:border-box;border-bottom:1px solid #EFF3F8">
+                  <span style="font-size:14px;font-weight:600">{{ s.label }}</span>
+                  <div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px;font-weight:500;color:#6B7789">{{ s.value }}</span><span aria-hidden="true" style="display:block;flex:none;width:18px;height:18px;background-color:#6B7789;-webkit-mask:url(https://api.iconify.design/solar/alt-arrow-right-linear.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/alt-arrow-right-linear.svg) center/contain no-repeat"></span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">EFFICIENCY FORMAT</div>
+              <div style="padding:16px 20px;border-radius:12px;background:#EAF1FC;border:2px solid #4C7BD9;display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">km/l</span><span style="font-size:12px;font-weight:500;color:#4C7BD9">Kilometres per litre</span></div>
+                <div style="width:24px;height:24px;border-radius:9999px;background:#4C7BD9;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:16px;height:16px;background-color:#FFFFFF;-webkit-mask:url(https://api.iconify.design/solar/check-read-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/check-read-bold.svg) center/contain no-repeat"></span></div>
+              </div>
+              <div style="padding:16px 20px;border-radius:12px;background:#EFF3F8;border:2px solid transparent;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">L/100 km</span><span style="font-size:12px;font-weight:500;color:#6B7789">Litres per 100 kilometres</span></div>
+              <div style="padding:16px 20px;border-radius:12px;background:#EFF3F8;border:2px solid transparent;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600;letter-spacing:-0.01em">mpg</span><span style="font-size:12px;font-weight:500;color:#6B7789">Miles per gallon</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6B7789">THEME</div>
+              <div style="display:flex;background:#EFF3F8;border-radius:9999px;padding:4px">
+                <div style="flex:1;text-align:center;padding:10px 0;border-radius:9999px;background:#FFFFFF;font-size:14px;font-weight:600;color:#4C7BD9">System</div>
+                <div style="flex:1;text-align:center;padding:10px 0;font-size:14px;font-weight:600;color:#6B7789">Light</div>
+                <div style="flex:1;text-align:center;padding:10px 0;font-size:14px;font-weight:600;color:#6B7789">Dark</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-weight:600;color:#6B7789">12 · Link conflict</div>
+        <div data-screen-label="12 Link conflict" style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F7F9FC;box-shadow:0 24px 48px -24px rgba(16,24,40,0.18);display:flex;flex-direction:column">
+          <div style="position:absolute;inset:0;background:rgba(31,41,55,0.32)"></div>
+          <div style="position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);background:#FFFFFF;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:20px">
+            <div style="width:48px;height:48px;border-radius:9999px;background:#EAF1FC;display:flex;align-items:center;justify-content:center"><span aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background-color:#4C7BD9;-webkit-mask:url(https://api.iconify.design/solar/users-group-rounded-bold.svg) center/contain no-repeat;mask:url(https://api.iconify.design/solar/users-group-rounded-bold.svg) center/contain no-repeat"></span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:20px;font-weight:600;letter-spacing:-0.01em;line-height:1.25">This Google account already has data</span>
+              <span style="font-size:14px;font-weight:500;line-height:1.5;color:#6B7789">Move the 2 vehicles and 14 entries from this phone into it?</span>
+            </div>
+            <div style="background:#EFF3F8;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
+              <div style="width:36px;height:36px;border-radius:9999px;background:#E2E8F0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">PS</div>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">poovarasu@gmail.com</span><span style="font-size:12px;font-weight:500;color:#6B7789">1 vehicle · 210 entries</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#4C7BD9;color:#FFFFFF;border-radius:12px;padding:15px 24px;text-align:center;font-size:18px;font-weight:600;box-shadow:none">Move and switch</div>
+              <div style="background:#EFF3F8;color:#1F2937;border-radius:12px;padding:13px 20px;text-align:center;font-size:14px;font-weight:600">Switch without moving</div>
+              <div style="padding:12px;text-align:center;font-size:14px;font-weight:600;color:#6B7789">Cancel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;linked&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;offline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const ic = (o) => JSON.parse(JSON.stringify(o).replace(/"solar:/g, '"solar/'));
+    const linked = this.props.linked ?? false;
+    const fuel = { icon: 'solar:gas-station-bold', tileBg: '#EAF1FC', tileFg: '#4C7BD9' };
+    const neutral = (icon) => ({ icon, tileBg: '#EFF3F8', tileFg: '#1F2937' });
+    const income = { icon: 'solar:wallet-money-bold', tileBg: '#E6F4F1', tileFg: '#2E8B7A' };
+    const pend = this.props.offline ?? false;
+    const recent = [
+      { ...fuel, title: 'Petrol · 32.4 L · Full tank', sub: 'Today · 48,212 km', amount: '₹3,402', pending: true },
+      { ...neutral('solar:sledgehammer-bold'), title: 'General service', sub: '3 Oct · 47,980 km', amount: '₹4,200' },
+      { ...neutral('solar:bill-list-bold'), title: 'Parking & toll', sub: '1 Oct', amount: '₹848' },
+      { ...income, title: 'Rideshare · 6 trips', sub: '30 Sep', amount: '+₹2,150' },
+    ];
+    const tv = (label, icon, active) => ({ label, icon, active, inactive: !active });
+    const fl = (label, active) => ({ label, active, inactive: !active });
+    const bars = [['M', '51%'], ['J', '59%'], ['J', '42%'], ['A', '67%'], ['S', '100%', true], ['O', '55%']]
+      .map(([l, h, peak]) => ({ l, h, peak: !!peak, normal: !peak }));
+    return ic({
+      offline: pend,
+      linked, notLinked: !linked,
+      principles: [
+        { icon: 'solar:forbidden-circle-bold', title: 'No ads, ever', body: 'No ad SDK and no location permission.' },
+        { icon: 'solar:cloud-cross-bold', title: 'Log anywhere', body: 'Every entry saves offline and syncs later.' },
+        { icon: 'solar:lock-keyhole-unlocked-bold', title: 'Your data is never paywalled', body: 'Backup, sync, restore and export stay free.' },
+      ],
+      vehicleTypes: [tv('Car', 'solar:wheel-bold', true), tv('Bike', 'solar:bicycling-bold'), tv('Scooter', 'solar:scooter-bold'),
+        tv('Truck', 'solar:delivery-bold'), tv('Bus', 'solar:bus-bold'), tv('Other', 'solar:widget-4-bold')],
+      fuelTypes: [fl('Petrol', true), fl('Diesel'), fl('CNG', true), fl('LPG'), fl('Electric')],
+      recent,
+      vehicles: [
+        { name: 'Swift Dzire', sub: 'Car · 48,212 km', icon: 'solar:wheel-bold', color: '#4C7BD9', active: true, inactive: false },
+        { name: 'Activa 6G', sub: 'Scooter · 21,540 km', icon: 'solar:scooter-bold', color: '#2E8B7A', active: false, inactive: true },
+        { name: "Amma's Nexon EV", sub: 'Car · Shared by Selvi', icon: 'solar:bolt-bold', color: '#1F2937', active: false, inactive: true },
+      ],
+      addTypes: [
+        { label: 'Fuel', icon: 'solar:gas-station-bold' }, { label: 'Expense', icon: 'solar:bill-list-bold' },
+        { label: 'Service', icon: 'solar:sledgehammer-bold' }, { label: 'Income', icon: 'solar:wallet-money-bold' },
+        { label: 'Trip', icon: 'solar:routing-2-bold' }, { label: 'Inspection', icon: 'solar:clipboard-check-bold' },
+      ],
+      filterChips: ['Fuel', 'Service', 'Expense', 'Income', 'Trip'],
+      history: [
+        { month: 'OCTOBER 2026', total: '₹8,450', items: recent.slice(0, 3) },
+        { month: 'SEPTEMBER 2026', total: '₹15,320', items: [
+          { ...income, title: 'Rideshare · 6 trips', sub: '30 Sep', amount: '+₹2,150' },
+          { ...fuel, title: 'Petrol · 30.0 L · Full tank', sub: '24 Sep · 47,610 km', amount: '₹3,150' },
+          { ...neutral('solar:routing-2-bold'), title: 'Chennai → Pondicherry', sub: '20 Sep · 152 km', amount: '—' },
+          { ...neutral('solar:bill-list-bold'), title: 'Insurance renewal', sub: '12 Sep', amount: '₹11,200' },
+        ] },
+      ],
+      bars,
+      lifetime: [
+        { v: '11,920', l: 'Kilometres driven' }, { v: '18.4', l: 'Avg km/l' },
+        { v: '21', l: 'Fill-ups' }, { v: '₹96k', l: 'Income logged' },
+      ],
+      moreItems: [
+        { label: 'Vehicles', icon: 'solar:wheel-bold', meta: '3' },
+        { label: 'Reminders', icon: 'solar:bell-bold', soon: true },
+        { label: 'Checklists', icon: 'solar:clipboard-check-bold', soon: true },
+        { label: 'Backup & export', icon: 'solar:upload-bold', soon: true },
+        { label: 'Settings', icon: 'solar:settings-bold' },
+        { label: 'Account', icon: 'solar:user-circle-bold', meta: linked ? 'Google' : 'Guest' },
+        { label: 'About & privacy', icon: 'solar:shield-check-bold' },
+      ],
+      settings: [
+        { label: 'Currency', value: 'INR · ₹' }, { label: 'Distance', value: 'km' },
+        { label: 'Volume', value: 'Litres' }, { label: 'Date format', value: 'DD/MM/YYYY' },
+        { label: 'Language', value: 'English' },
+      ],
+    });
+  }
+}
+</script>
+</body>
+</html>
