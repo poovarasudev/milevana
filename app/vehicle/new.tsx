@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
 import { useStore } from '../../src/data/store';
 import { VehicleForm, vehicleSchema } from '../../src/domain/validation';
 import type { FuelType, VehicleType } from '../../src/domain/types';
 import { VEHICLE_ICON } from '../../src/features/entryView';
+import { KEYBOARD_BEHAVIOR } from '../../src/ui/platform';
 import { Button, Chip, Field, Header, Icon, Label, T } from '../../src/ui/kit';
 import { useTheme, VEHICLE_COLORS } from '../../src/ui/theme';
 
@@ -38,7 +39,7 @@ export default function NewVehicle() {
   });
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={KEYBOARD_BEHAVIOR}>
       <Header title="New vehicle" />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Controller control={control} name="name" render={({ field }) => (

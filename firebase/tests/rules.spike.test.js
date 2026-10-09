@@ -27,13 +27,18 @@ beforeAll(async () => {
 afterAll(async () => { await env.cleanup(); });
 beforeEach(async () => { await env.clearFirestore(); });
 
+const memberRec = (role, name) => ({ role, name: name ?? 'A', joinedAt: past });
+
 const vehicle = (owner, extra = {}) => ({
-  name: 'Swift', type: 'car', color: '#1E88E5', fuelTypes: ['petrol'],
+  name: 'Swift', type: 'car', color: 'c03', fuelTypes: ['petrol'],
   odometerUnit: 'km', currency: 'INR', ownerId: owner, memberIds: [owner],
-  members: { [owner]: { role: 'owner', name: 'A', email: 'a@example.com', joinedAt: past } },
-  lastOdometer: 1000, lastOdometerAt: past, archived: false,
+  members: { [owner]: memberRec('owner', 'A') },
+  startOdometer: 1000, lastOdometer: 1000, lastOdometerAt: past, archived: false,
   createdAt: past, updatedAt: past, schemaVersion: 1, ...extra,
 });
+
+const members = (owner, others = []) =>
+  Object.fromEntries([owner, ...others].map((u) => [u, memberRec(u === owner ? 'owner' : 'member')]));
 
 const entry = (creator, i = 0, extra = {}) => ({
   type: 'expense', date: past, odometer: 1000 + i,
@@ -41,6 +46,18 @@ const entry = (creator, i = 0, extra = {}) => ({
   attachments: [], uploaderUids: [],
   createdBy: creator, createdByName: 'Alice', updatedBy: creator,
   createdAt: past, updatedAt: past, schemaVersion: 1, details: {}, ...extra,
+});
+
+const reminder = (creator, extra = {}) => ({
+  title: 'PUC renewal', subject: { kind: 'custom' },
+  odometerTrigger: { dueOdometer: 15000 }, leadDays: 7, leadDistance: 500,
+  status: 'active', createdBy: creator,
+  createdAt: past, updatedAt: past, schemaVersion: 1, ...extra,
+});
+
+const template = (creator, extra = {}) => ({
+  name: 'Annual check', items: [{ id: 'i1', label: 'Brakes' }],
+  createdBy: creator, createdAt: past, updatedAt: past, schemaVersion: 1, ...extra,
 });
 
 const seedVehicle = (id, owner, extra) =>
@@ -73,20 +90,20 @@ describe('rules matrix (smoke subset)', () => {
   });
 
   test('vehicles: member may update only lastOdometer, lastOdometerAt, updatedAt', async () => {
-    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob'], members: { alice: {}, bob: {} } });
+    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob'], members: members('alice', ['bob']) });
     await assertSucceeds(updateDoc(doc(db('bob'), 'vehicles', 'v1'), { lastOdometer: 1500, lastOdometerAt: past, updatedAt: past }));
     await assertFails(updateDoc(doc(db('bob'), 'vehicles', 'v1'), { name: 'Hijack' }));
     await assertFails(updateDoc(doc(db('bob'), 'vehicles', 'v1'), { lastOdometer: -5 }));
   });
 
   test('vehicles: only owner deletes', async () => {
-    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob'], members: { alice: {}, bob: {} } });
+    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob'], members: members('alice', ['bob']) });
     await assertFails(deleteDoc(doc(db('bob'), 'vehicles', 'v1')));
     await assertSucceeds(deleteDoc(doc(db('alice'), 'vehicles', 'v1')));
   });
 
   test('entries: create with createdBy = self; creator or owner edits; creator immutable', async () => {
-    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob'], members: { alice: {}, bob: {} } });
+    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob'], members: members('alice', ['bob']) });
     await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'entries', 'e1'), entry('bob')));
     await assertFails(setDoc(doc(db('bob'), 'vehicles', 'v1', 'entries', 'e2'), entry('alice')));
     await assertFails(setDoc(doc(db('carol'), 'vehicles', 'v1', 'entries', 'e3'), entry('carol')));
@@ -105,22 +122,22 @@ describe('rules matrix (smoke subset)', () => {
     await assertFails(setDoc(col('b'), entry('alice', 0, { amount: { minor: 10.5, currency: 'INR' } })));
     await assertFails(setDoc(col('c'), entry('alice', 0, { amount: { minor: 10, currency: 'USD' } })));
     await assertFails(setDoc(col('d'), entry('alice', 0, { createdAt: future })));
-    const trip = entry('alice', 0, { type: 'trip' }); delete trip.amount;
+    const trip = entry('alice', 0, { type: 'trip' }); delete trip.amount; delete trip.category;
     await assertSucceeds(setDoc(col('e'), trip));
     await assertFails(setDoc(col('f'), entry('alice', 0, { type: 'trip' })));
   });
 
   test('reminders and checklist templates: members only; template limit 50 items; delete by creator or owner', async () => {
-    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob', 'dan'], members: { alice: {}, bob: {}, dan: {} } });
-    await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'reminders', 'r1'), { title: 'PUC' }));
-    await assertFails(setDoc(doc(db('carol'), 'vehicles', 'v1', 'reminders', 'r2'), { title: 'x' }));
+    await seedVehicle('v1', 'alice', { memberIds: ['alice', 'bob', 'dan'], members: members('alice', ['bob', 'dan']) });
+    await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'reminders', 'r1'), reminder('bob')));
+    await assertFails(setDoc(doc(db('carol'), 'vehicles', 'v1', 'reminders', 'r2'), reminder('carol')));
     const items = (n) => Array.from({ length: n }, (_, i) => ({ id: String(i), label: 'l' + i }));
-    await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't1'), { name: 'T', items: items(50), createdBy: 'bob' }));
-    await assertFails(setDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't2'), { name: 'T', items: items(51), createdBy: 'bob' }));
+    await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't1'), template('bob', { items: items(50) })));
+    await assertFails(setDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't2'), template('bob', { items: items(51) })));
     await assertSucceeds(updateDoc(doc(db('alice'), 'vehicles', 'v1', 'checklistTemplates', 't1'), { name: 'Renamed' }));
     await assertFails(deleteDoc(doc(db('dan'), 'vehicles', 'v1', 'checklistTemplates', 't1')));
     await assertSucceeds(deleteDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't1')));
-    await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't3'), { name: 'T', items: items(3), createdBy: 'bob' }));
+    await assertSucceeds(setDoc(doc(db('bob'), 'vehicles', 'v1', 'checklistTemplates', 't3'), template('bob', { items: items(3) })));
     await assertSucceeds(deleteDoc(doc(db('alice'), 'vehicles', 'v1', 'checklistTemplates', 't3')));
   });
 

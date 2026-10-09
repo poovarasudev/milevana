@@ -1,13 +1,15 @@
 rules_version = '2';
 
-// Milevana Foundation rules (draft for the G3 spike).
+// Milevana Foundation rules (FND-SEC-01/02/03).
 // Everything is denied by default and opened only as below.
 // Decisions applied: docs/requirements.md "Decisions on open questions".
 //  - Foundation ships default-deny for invites, self-join, leave, remove and
-//    ownership transfer (tab 6 adds the real rules).
-//  - Timestamps must not be in the future (not equal to request.time), so merged
-//    and restored copies keep their original dates.
+//    ownership transfer (the Sharing sub-project adds the real rules).
+//  - Timestamps must not be in the future, so merged and restored copies keep
+//    their original dates.
 //  - createdBy and updatedBy must equal the caller.
+//  - Field caps mirror src/data/schema/* (name ≤ 60, plate ≤ 15, notes ≤ 500,
+//    ≤ 5 attachments, ≤ 10 members, ≤ 50 template items, odometer ≤ 9,999,999.9).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -23,29 +25,60 @@ service cloud.firestore {
       return /databases/$(database)/documents/vehicles/$(vid);
     }
 
+    function vehicleData(vid) {
+      return get(vehiclePath(vid)).data;
+    }
+
     function notInFuture(ts) {
       return ts is timestamp && ts <= request.time;
     }
 
+    function optShort(s) {
+      return s is string && s.size() <= 60;
+    }
+
     // ---------- users ----------
+    // Only the owner of the document can touch it (FR-SEC-01).
     match /users/{userId} {
       allow read, create, update, delete: if signedIn() && uid() == userId;
     }
 
     // ---------- vehicles ----------
-    function validVehicle(d) {
-      return d.name is string && d.name.size() > 0 && d.name.size() <= 100
-        && d.type in ['car', 'bike', 'scooter', 'truck', 'bus', 'other']
-        && d.odometerUnit in ['km', 'mi', 'hours']
-        && d.currency is string && d.currency.size() == 3
-        && d.fuelTypes is list && d.fuelTypes.size() <= 5
-        && d.archived is bool
-        && d.lastOdometer is number && d.lastOdometer >= 0
-        && d.schemaVersion is int
-        && notInFuture(d.createdAt) && notInFuture(d.updatedAt);
+    function memberMapOk(d) {
+      // members keys must equal memberIds, the owner must be a member with
+      // role 'owner'. Membership can never change in Foundation, so the only
+      // map ever validated here is the sole-owner create shape.
+      return d.memberIds is list && d.memberIds.size() >= 1 && d.memberIds.size() <= 10
+        && d.members is map
+        && d.members.keys().toSet() == d.memberIds.toSet()
+        && d.ownerId in d.memberIds
+        && d.members[d.ownerId].role == 'owner'
+        && notInFuture(d.members[d.ownerId].joinedAt);
     }
 
-    // Foundation: the owner may not change ownership or membership at all.
+    function validVehicle(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.type in ['car', 'bike', 'scooter', 'truck', 'bus', 'other']
+        && d.color is string && d.color.matches('^c(0[1-9]|1[0-2])$')
+        && (!d.keys().hasAny(['make']) || optShort(d.make))
+        && (!d.keys().hasAny(['model']) || optShort(d.model))
+        && (!d.keys().hasAny(['year']) || (d.year is int && d.year >= 1950 && d.year <= 2100))
+        && (!d.keys().hasAny(['plate']) || (d.plate is string && d.plate.size() <= 15))
+        && d.fuelTypes is list && d.fuelTypes.size() >= 1 && d.fuelTypes.size() <= 5
+        && d.fuelTypes.hasOnly(['petrol', 'diesel', 'cng', 'lpg', 'electric'])
+        && d.odometerUnit in ['km', 'mi', 'hours']
+        && d.currency is string && d.currency.matches('^[A-Z]{3}$')
+        && d.startOdometer is number && d.startOdometer >= 0 && d.startOdometer <= 9999999.9
+        && d.lastOdometer is number && d.lastOdometer >= 0
+        && notInFuture(d.lastOdometerAt)
+        && d.ownerId is string
+        && memberMapOk(d)
+        && d.archived is bool
+        && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
+        && d.schemaVersion is int;
+    }
+
+    // Foundation: nobody may change ownership or membership fields.
     function ownerKeepsMembership() {
       return !request.resource.data.diff(resource.data).affectedKeys()
         .hasAny(['ownerId', 'memberIds', 'members']);
@@ -57,6 +90,7 @@ service cloud.firestore {
           .hasOnly(['lastOdometer', 'lastOdometerAt', 'updatedAt'])
         && request.resource.data.lastOdometer is number
         && request.resource.data.lastOdometer >= 0
+        && notInFuture(request.resource.data.lastOdometerAt)
         && notInFuture(request.resource.data.updatedAt);
     }
 
@@ -79,78 +113,162 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.ownerId == uid();
 
       // ---------- entries ----------
+      function attachmentOk(a) {
+        return a is map
+          && a.id is string && a.id.size() > 0
+          && a.ownerUid is string && a.ownerUid.size() > 0
+          && a.mimeType is string && a.mimeType.size() > 0 && a.mimeType.size() <= 120
+          && a.sizeBytes is int && a.sizeBytes >= 0
+          && a.status in ['queued', 'uploading', 'uploaded', 'failed', 'missing']
+          && a.sharedWithUids is list && a.sharedWithUids.size() <= 10;
+      }
+
+      function hasCategory(t) {
+        return t in ['expense', 'service', 'income'];
+      }
+
       function amountOk(d, vehicleCurrency) {
         return d.type in ['fuel', 'expense', 'service', 'income']
-          ? (d.amount.minor is int && d.amount.minor >= 0
+          ? (d.keys().hasAny(['amount'])
+              && d.amount.minor is int
+              && (d.type == 'service' ? d.amount.minor >= 0 : d.amount.minor > 0)
               && d.amount.currency == vehicleCurrency)
-          : !('amount' in d);
+          : !d.keys().hasAny(['amount']);
       }
 
       function validEntry(d, vehicleCurrency) {
         return d.type in ['fuel', 'expense', 'service', 'income', 'trip', 'inspection']
-          && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
-          && d.date is timestamp
-          && d.schemaVersion is int
+          && notInFuture(d.date) && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
+          && (!d.keys().hasAny(['odometer']) || (d.odometer is number && d.odometer >= 0))
+          && amountOk(d, vehicleCurrency)
+          && (hasCategory(d.type)
+              ? (d.keys().hasAny(['category']) && d.category is string && d.category.size() > 0 && d.category.size() <= 60)
+              : !d.keys().hasAny(['category']))
+          && (!d.keys().hasAny(['notes']) || (d.notes is string && d.notes.size() <= 500))
           && d.attachments is list && d.attachments.size() <= 5
-          && amountOk(d, vehicleCurrency);
+          && validAttachments(d)
+          && d.uploaderUids is list && d.uploaderUids.size() <= 10
+          && d.createdBy is string && d.createdBy.size() > 0
+          && d.createdByName is string && d.createdByName.size() > 0 && d.createdByName.size() <= 60
+          && d.updatedBy is string && d.updatedBy.size() > 0
+          && d.schemaVersion is int
+          && (d.type in ['fuel', 'service', 'trip', 'inspection']
+              ? (d.keys().hasAny(['details']) && d.details is map)
+              : true);
+      }
+
+      function validAttachments(d) {
+        return d.attachments.size() == 0
+          || (d.attachments.size() <= 5
+              && attachmentListOk(d.attachments));
+      }
+
+      // Rules have no list comprehension; check each slot individually.
+      function attachmentListOk(list) {
+        return (list.size() < 1 || attachmentOk(list[0]))
+          && (list.size() < 2 || attachmentOk(list[1]))
+          && (list.size() < 3 || attachmentOk(list[2]))
+          && (list.size() < 4 || attachmentOk(list[3]))
+          && (list.size() < 5 || attachmentOk(list[4]));
       }
 
       match /entries/{eid} {
-        allow read: if signedIn() && uid() in get(vehiclePath(vid)).data.memberIds;
+        allow read: if signedIn() && uid() in vehicleData(vid).memberIds;
 
-        allow create: if signedIn() && (
-          get(vehiclePath(vid)).data.memberIds.hasAny([uid()])
+        allow create: if signedIn()
+          && uid() in vehicleData(vid).memberIds
           && request.resource.data.createdBy == uid()
           && request.resource.data.updatedBy == uid()
-          && validEntry(request.resource.data, get(vehiclePath(vid)).data.currency)
-        );
+          && validEntry(request.resource.data, vehicleData(vid).currency);
 
-        allow update: if signedIn() && (
-          get(vehiclePath(vid)).data.memberIds.hasAny([uid()])
-          && (resource.data.createdBy == uid()
-              || get(vehiclePath(vid)).data.ownerId == uid())
+        allow update: if signedIn()
+          && uid() in vehicleData(vid).memberIds
+          && (resource.data.createdBy == uid() || vehicleData(vid).ownerId == uid())
           && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdByName == resource.data.createdByName
+          && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.updatedBy == uid()
-          && validEntry(request.resource.data, get(vehiclePath(vid)).data.currency)
-        );
+          && validEntry(request.resource.data, vehicleData(vid).currency);
 
-        allow delete: if signedIn() && (
-          get(vehiclePath(vid)).data.memberIds.hasAny([uid()])
-          && (resource.data.createdBy == uid()
-              || get(vehiclePath(vid)).data.ownerId == uid())
-        );
+        allow delete: if signedIn()
+          && uid() in vehicleData(vid).memberIds
+          && (resource.data.createdBy == uid() || vehicleData(vid).ownerId == uid());
       }
 
       // ---------- reminders ----------
+      function validReminder(d) {
+        return d.title is string && d.title.size() > 0 && d.title.size() <= 60
+          && d.subject is map && d.subject.kind in ['service', 'expense', 'custom']
+          && (!d.subject.keys().hasAny(['serviceType']) || optShort(d.subject.serviceType))
+          && (!d.subject.keys().hasAny(['category']) || optShort(d.subject.category))
+          && (d.subject.kind != 'service' || d.subject.serviceType is string)
+          && (d.subject.kind != 'expense' || d.subject.category is string)
+          && (d.keys().hasAny(['dateTrigger']) || d.keys().hasAny(['odometerTrigger']))
+          // A due date is meant to be in the future, so it is only type-checked.
+          && (!d.keys().hasAny(['dateTrigger'])
+              || (d.dateTrigger is map && d.dateTrigger.dueDate is timestamp))
+          && (!d.keys().hasAny(['odometerTrigger'])
+              || (d.odometerTrigger is map
+                  && d.odometerTrigger.dueOdometer is number && d.odometerTrigger.dueOdometer >= 0))
+          && d.leadDays is int && d.leadDays >= 0
+          && d.leadDistance is number && d.leadDistance >= 0
+          && (!d.keys().hasAny(['amountMinor']) || (d.amountMinor is int && d.amountMinor >= 0))
+          && d.status in ['active', 'done']
+          && (!d.keys().hasAny(['completedAt']) || notInFuture(d.completedAt))
+          && d.createdBy is string && d.createdBy.size() > 0
+          && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
+          && d.schemaVersion is int;
+      }
+
       match /reminders/{rid} {
-        allow read, create, update, delete: if signedIn()
-          && uid() in get(vehiclePath(vid)).data.memberIds;
+        allow read, delete: if signedIn() && uid() in vehicleData(vid).memberIds;
+
+        allow create: if signedIn()
+          && uid() in vehicleData(vid).memberIds
+          && request.resource.data.createdBy == uid()
+          && validReminder(request.resource.data);
+
+        allow update: if signedIn()
+          && uid() in vehicleData(vid).memberIds
+          && request.resource.data.createdBy == resource.data.createdBy
+          && validReminder(request.resource.data);
       }
 
       // ---------- checklist templates ----------
+      function templateItemOk(i) {
+        return i is map
+          && i.id is string && i.id.size() > 0 && i.id.size() <= 60
+          && i.label is string && i.label.size() > 0 && i.label.size() <= 60;
+      }
+
+      function validTemplate(d) {
+        return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.items is list && d.items.size() <= 50
+          && d.createdBy is string && d.createdBy.size() > 0
+          && notInFuture(d.createdAt) && notInFuture(d.updatedAt)
+          && d.schemaVersion is int;
+      }
+
       match /checklistTemplates/{tid} {
-        allow read: if signedIn() && uid() in get(vehiclePath(vid)).data.memberIds;
+        allow read: if signedIn() && uid() in vehicleData(vid).memberIds;
 
         allow create: if signedIn()
-          && uid() in get(vehiclePath(vid)).data.memberIds
+          && uid() in vehicleData(vid).memberIds
           && request.resource.data.createdBy == uid()
-          && request.resource.data.items is list
-          && request.resource.data.items.size() <= 50;
+          && validTemplate(request.resource.data);
 
         allow update: if signedIn()
-          && uid() in get(vehiclePath(vid)).data.memberIds
+          && uid() in vehicleData(vid).memberIds
           && request.resource.data.createdBy == resource.data.createdBy
-          && request.resource.data.items is list
-          && request.resource.data.items.size() <= 50;
+          && validTemplate(request.resource.data);
 
         allow delete: if signedIn()
-          && uid() in get(vehiclePath(vid)).data.memberIds
-          && (resource.data.createdBy == uid()
-              || get(vehiclePath(vid)).data.ownerId == uid());
+          && uid() in vehicleData(vid).memberIds
+          && (resource.data.createdBy == uid() || vehicleData(vid).ownerId == uid());
       }
     }
 
-    // ---------- invites: denied in Foundation, defined in tab 6 ----------
+    // ---------- invites: fully denied in Foundation, defined by Sharing ----------
     match /invites/{code} {
       allow read, write: if false;
     }

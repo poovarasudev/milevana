@@ -10,6 +10,8 @@ import { useTheme } from '../../src/ui/theme';
 import { VehicleHeader } from '../../src/ui/VehicleHeader';
 import { useMemo } from 'react';
 
+const nowMs = () => Date.now();
+
 export default function Dashboard() {
   const t = useTheme();
   const v = useSelectedVehicle();
@@ -18,7 +20,7 @@ export default function Dashboard() {
   const entries = useMemo(() => all.filter((e) => e.vehicleId === v?.id), [all, v?.id]);
   if (!v) return <NoVehicle />;
 
-  const now = Date.now();
+  const now = nowMs();
   const spend = monthSpend(entries, monthKey(now));
   const mileage = lastMileage(entries);
   const recent = [...entries].sort((a, b) => b.date - a.date).slice(0, 4);

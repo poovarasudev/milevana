@@ -22,7 +22,7 @@ export default function More() {
       <Header title="More" back={false} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 4, gap: 16 }}>
         <Card style={{ backgroundColor: t.primarySoft, borderColor: t.primarySoft }}>
-          <T weight="semi">Your data isn't backed up</T>
+          <T weight="semi">Your data isn’t backed up</T>
           <T size={13} color={t.muted} style={{ marginTop: 4, lineHeight: 19 }}>
             Entries live only on this phone. Uninstalling now would erase them. Google linking arrives with the account work.
           </T>

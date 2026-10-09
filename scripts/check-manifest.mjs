@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+// FND-PLT-01 #2 / AC-D19 / AC-D20 guardrail: the merged Android release manifest
+// must not contain READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE or any location
+// permission. Usage:
+//   node scripts/check-manifest.mjs [path-to-merged-AndroidManifest.xml]
+// With no argument it looks in the standard Expo/Gradle merged-manifest locations.
+// If no merged manifest exists (no native build has run), it verifies the
+// app.json blockedPermissions guard is configured and exits 0 — the manifest
+// check then runs for real in the Android build job.
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+const FORBIDDEN = [
+  'android.permission.READ_MEDIA_IMAGES',
+  'android.permission.READ_EXTERNAL_STORAGE',
+  'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+  'android.permission.READ_MEDIA_VIDEO',
+  'android.permission.READ_MEDIA_AUDIO',
+  'android.permission.ACCESS_FINE_LOCATION',
+  'android.permission.ACCESS_COARSE_LOCATION',
+  'android.permission.ACCESS_BACKGROUND_LOCATION',
+];
+
+function* findManifests(dir) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of entries) {
+    const p = join(dir, name);
+    const st = statSync(p);
+    if (st.isDirectory()) yield* findManifests(p);
+    else if (name === 'AndroidManifest.xml') yield p;
+  }
+}
+
+const arg = process.argv[2];
+const candidates = arg
+  ? [arg]
+  : [
+      ...findManifests('android/app/build/intermediates/merged_manifests'),
+      ...findManifests('android/app/build/intermediates/merged_manifest'),
+      ...findManifests('android/app/build/outputs/logs'),
+    ];
+
+if (!candidates.length || !candidates.some((p) => existsSync(p))) {
+  // No merged manifest: verify the strip config is declared so a future build keeps it clean.
+  const appJson = JSON.parse(readFileSync('app.json', 'utf8'));
+  const blocked = appJson?.expo?.android?.blockedPermissions ?? [];
+  const missing = FORBIDDEN.slice(0, 4).filter((p) => !blocked.includes(p));
+  const missingLoc = FORBIDDEN.slice(4).filter((p) => !blocked.includes(p));
+  if (missing.length || missingLoc.length) {
+    console.error(
+      'check-manifest: no merged manifest found and app.json android.blockedPermissions does not cover: ' +
+        [...missing, ...missingLoc].join(', '),
+    );
+    process.exit(1);
+  }
+  console.log('check-manifest: no merged manifest present; app.json blockedPermissions covers all forbidden permissions');
+  process.exit(0);
+}
+
+let failed = false;
+for (const m of candidates.filter((p) => existsSync(p))) {
+  const xml = readFileSync(m, 'utf8');
+  const found = FORBIDDEN.filter((p) => xml.includes(p));
+  if (found.length) {
+    console.error(`check-manifest: ${m} contains forbidden permissions: ${found.join(', ')}`);
+    failed = true;
+  } else {
+    console.log(`check-manifest: ${m} clean`);
+  }
+}
+process.exit(failed ? 1 : 0);

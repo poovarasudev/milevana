@@ -1,6 +1,6 @@
 import type { Entry } from '../domain/types';
 import { describe, ENTRY_ICON } from '../features/entryView';
-import { Icon, Row, T } from './kit';
+import { Row, T } from './kit';
 import { useTheme } from './theme';
 
 export function EntryRow({ entry, unit }: { entry: Entry; unit: string }) {

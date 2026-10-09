@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Switch, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Switch, View } from 'react-native';
 import { useSelectedVehicle, useStore } from '../../src/data/store';
 import { formatMoney, toMinor } from '../../src/domain/money';
 import type { EntryType, FuelType } from '../../src/domain/types';
 import { ENTRY_LABEL } from '../../src/features/entryView';
+import { KEYBOARD_BEHAVIOR } from '../../src/ui/platform';
 import { Button, Card, Chip, Field, Header, T } from '../../src/ui/kit';
 import { useTheme } from '../../src/ui/theme';
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1).replace('cng', 'CNG').replace('lpg', 'LPG');
+const nowMs = () => Date.now();
 
 export default function LogEntry() {
   const { type } = useLocalSearchParams<{ type: EntryType }>();
@@ -41,7 +43,7 @@ export default function LogEntry() {
     setErrors(e);
     if (Object.keys(e).length) return;
     addEntry({
-      vehicleId: v.id, type, date: Date.now(), amountMinor: total,
+      vehicleId: v.id, type, date: nowMs(), amountMinor: total,
       odometer: odo ? Number(odo) : undefined, notes: isFuel ? undefined : notes.trim() || undefined,
       details: isFuel ? { fuelType: fuel, quantity: Number(qty), pricePerUnitMinor: toMinor(Number(price)), fullTank: full, missedFill: missed } : undefined,
     });
@@ -49,7 +51,7 @@ export default function LogEntry() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={KEYBOARD_BEHAVIOR}>
       <Header title={ENTRY_LABEL[type]} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Field label="ODOMETER" keyboardType="decimal-pad" value={odo} onChangeText={setOdo} suffix={v.odometerUnit} error={errors.odo} />

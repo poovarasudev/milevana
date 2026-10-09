@@ -1,0 +1,57 @@
+# Milevana CI — Phase 1A Foundation guardrails (FND-PLT-03).
+# Runs typecheck, lint, unit tests, guardrail scripts, the rules + repository
+# emulator suites, and the web export on every push/PR.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install firebase test dependencies
+        run: npm ci --prefix firebase
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Guardrails (platform boundary, no ad/analytics SDK, manifest policy)
+        run: npm run guardrails
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: Firestore rules matrix (emulator)
+        run: cd firebase && npx firebase emulators:exec --only firestore --project demo-milevana "npx jest --runInBand"
+
+      - name: Repository + serializer tests (emulator)
+        run: cd firebase && npx firebase emulators:exec --only firestore --project demo-milevana "cd .. && npm run test:emulator"
+
+      - name: Web export
+        run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ vars.EXPO_PUBLIC_FIREBASE_API_KEY || 'ci-placeholder' }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_APP_ID || 'ci-placeholder' }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '0' }}
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'ci-placeholder' }}
