@@ -33,7 +33,7 @@ export interface SharedFields {
 }
 
 /** New entries default to the current local date and time to the minute (LD-04). */
-export function useSharedFields(entry?: EntryRecord): SharedFields {
+export function useSharedFields(entry?: EntryRecord, notesSeed?: string): SharedFields {
   const [date, setDateState] = useState(
     () => new Date(toMinute(entry ? tsToMillis(entry.date) : Date.now())),
   );
@@ -45,7 +45,7 @@ export function useSharedFields(entry?: EntryRecord): SharedFields {
     setFutureDate(d.getTime() > Date.now());
   };
   const [odometerText, setOdometerText] = useState(odometerToText(entry?.odometer));
-  const [notes, setNotes] = useState(entry?.notes ?? '');
+  const [notes, setNotes] = useState(entry?.notes ?? notesSeed ?? '');
   return { date, setDate, futureDate, odometerText, setOdometerText, notes, setNotes };
 }
 

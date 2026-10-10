@@ -379,11 +379,12 @@ service cloud.firestore {
       }
 
       // ---------- checklist templates ----------
-      function templateItemOk(i) {
-        return i is map
-          && i.id is string && i.id.size() > 0 && i.id.size() <= 60
-          && i.label is string && i.label.size() > 0 && i.label.size() <= 60;
-      }
+      // Rules have no list comprehension, so each item slot would need its own
+      // check — and Firestore evaluates every operand (errors only absorb the
+      // result, not the cost), so validating all 50 slots exceeds the 1000-
+      // expression-per-request budget. Item shape is enforced by the validated
+      // templateRepo schema on write and skipped on read; the rules keep the
+      // security boundary: members only, creator/createdBy checks, ≤50 items.
 
       function validTemplate(d) {
         return d.name is string && d.name.size() > 0 && d.name.size() <= 60

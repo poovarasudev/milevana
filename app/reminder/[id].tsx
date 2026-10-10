@@ -24,7 +24,7 @@ const PRESETS: readonly string[] = ['insurance', 'puc', 'service'];
 
 function ReminderScreen() {
   const th = useTheme();
-  const params = useLocalSearchParams<{ id: string; vehicle?: string; preset?: string }>();
+  const params = useLocalSearchParams<{ id: string; vehicle?: string; preset?: string; title?: string }>();
   const isNew = params.id === 'new';
   const preset = PRESETS.includes(params.preset ?? '') ? (params.preset as ReminderPreset) : undefined;
   const vehicle = useAppStore((s) =>
@@ -90,10 +90,11 @@ function ReminderScreen() {
             )
           ) : (
             <ReminderForm
-              key={reminder?.id ?? `new-${preset ?? ''}`}
+              key={reminder?.id ?? `new-${preset ?? ''}-${params.title ?? ''}`}
               vehicle={vehicle}
               reminder={reminder}
               preset={reminder ? undefined : preset}
+              prefillTitle={reminder || preset ? undefined : params.title}
               saving={saving}
               saveError={error}
               onSubmit={(v) => void submit(v)}

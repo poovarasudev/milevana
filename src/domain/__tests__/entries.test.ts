@@ -145,6 +145,24 @@ describe('filterEntries — type chips, inclusive dates, search (LD-11)', () => 
     expect(filterEntries(list, { types: ['expense'], query: 'mall' }).map((e) => e.id)).toEqual(['x']);
     expect(filterEntries(list, { types: ['expense'], query: 'engine' })).toEqual([]);
   });
+
+  // CHK-09: inspections are found by template name and entry notes; item
+  // notes inside the snapshot are never searched.
+  test('inspection search: template name and entry notes match, item notes do not', () => {
+    const insp = mk({
+      id: 'in', type: 'inspection', date: day('2025-10-12'), notes: 'morning check',
+      details: {
+        templateName: 'Pre-trip',
+        issueCount: 1,
+        items: [{ id: 'i1', label: 'Brakes', result: 'fail', note: 'squeaky pedal' }],
+      },
+    });
+    expect(filterEntries([insp], { types: ['inspection'] }).map((e) => e.id)).toEqual(['in']);
+    expect(filterEntries([insp], { query: 'pre-trip' }).map((e) => e.id)).toEqual(['in']);
+    expect(filterEntries([insp], { query: 'morning' }).map((e) => e.id)).toEqual(['in']);
+    expect(filterEntries([insp], { query: 'squeaky' })).toEqual([]);
+    expect(filterEntries([insp], { query: 'Brakes' })).toEqual([]);
+  });
 });
 
 describe('odometer readings include a trip’s start and end (LD-05)', () => {

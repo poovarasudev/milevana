@@ -37,7 +37,15 @@ export default function AddSheet() {
             <Pressable
               key={x}
               accessibilityRole="button"
-              onPress={() => { router.back(); router.push({ pathname: '/entry/[type]', params: { type: x } }); }}
+              onPress={() => {
+                router.back();
+                // CHK-06: Inspection opens the template picker, not a form.
+                if (x === 'inspection') {
+                  router.push('/inspection/pick');
+                } else {
+                  router.push({ pathname: '/entry/[type]', params: { type: x } });
+                }
+              }}
               style={{ flexGrow: 1, flexBasis: '30%', alignItems: 'center', gap: 8, paddingVertical: 16, minHeight: 48, borderRadius: 18, backgroundColor: th.card, borderWidth: 1, borderColor: th.divider }}
             >
               <Icon name={ENTRY_ICON[x]} color={th.primary} />

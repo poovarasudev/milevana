@@ -154,6 +154,21 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | SHR-15 | Done | `src/features/receipts.ts` (`memberReceiptState` → own/openable/pending/gone, `driveViewUrl`, `openInDrive`), `MemberRow` in `AttachmentsSection.tsx` | `sharing.test.tsx` (5 member-receipt tests), `attachments.test.tsx` | Per SD-09/SHR-01 assumption: other members' receipts never render in-app — "Open in Drive" when shared, "Shared once \<name\> opens the app" pending, "No longer available" when gone; no offline open. |
 | SHR-16 | Partial | `docs/sharing-verification.md` (5 spike rows + 18 manual rows + automated coverage) | All suites listed in Verification | Adversarial rules tests and repo/UI suites are green; the two-account and device rows need the owner's environment. |
 
+## Phase 7 — Checklists
+
+| Story | Status | Implementation | Tests | Notes / deviations |
+| --- | --- | --- | --- | --- |
+| CHK-01 | Done | `src/domain/checklists.ts` — item ids, `startersFor`/`starterTemplate` (i18n strings), `validateTemplateInput`, `nameTaken` (case-insensitive), `canAddTemplate` (20), `buildInspection` (immutable snapshot), `failedItems`, `unansweredCount`, `noteTooLong`, `copyName`/`copyItems` (fresh ids), `reminderTitleFor`, `issueBadge` | `src/domain/__tests__/checklists.test.ts` (19 tests) | Starter groups/labels come from `src/i18n/en.ts`; snapshot copies template values so later edits/deletes never change saved inspections. |
+| CHK-02 | Done | `app/checklists.tsx`, `src/ui/ChecklistsList.tsx`, More → Checklists in `app/(tabs)/more.tsx`, templates watch in `session.ts` + `appStore.ts` read model (`templates`, `templatesVehicleId`, `templatesArrived`) | `src/ui/__tests__/checklists.test.tsx` (list, empty, limit, archived rows) | "Coming soon" replaced. Empty state offers starters; rows show name + item count; pending sync icon; archived banner. |
+| CHK-03 | Done | Starter creation in `src/features/checklists.ts` (`createStarters`) + `ChecklistsList` picker | `checklists.test.tsx` (offers by type, bike order, create writes doc) | Starters can be picked several at once; count toward the 20 cap; offered again after the last template is deleted. |
+| CHK-04 | Done | `src/ui/TemplateForm.tsx`, `app/checklist/[id].tsx` (new + edit + delete), `src/features/checklists.ts` (`saveTemplate`, `deleteTemplate` — creator-or-owner app-side, archived guard) | `checklists.test.tsx` (required fields, duplicate name ignoring case, trim, stable ids, reorder) | Validation in the form + repo; delete confirm via `ConfirmSheet`. |
+| CHK-05 | Done | `copyTemplate` + `copyDestinations` in `checklists.ts`, copy sheet in `ChecklistsList` | `src/features/__tests__/checklists.test.ts` (fresh ids, copier creator, ` (copy)`/` (copy 2)`, destination-at-20) | Copy naming ignores case per CD-08. |
+| CHK-06 | Done | `app/inspection/pick.tsx` (template picker; empty → Checklists), `src/ui/entry/InspectionForm.tsx` (grouped items, Pass/Fail/N/A toggle, per-item notes, optional odometer, unanswered→`na` confirm, dirty-leave confirm via `beforeRemove`), `app/add.tsx` routes Inspection here | `checklists.test.tsx` (snapshot fields, confirm→`na`, odometer, notes) | `beforeRemove` listener used instead of `usePreventRemove` (not exported by this expo-router version). No `amount`/`category`; entry batch bumps `lastOdometer` via the existing entryRepo path. |
+| CHK-07 | Done | `AttachmentDoc.itemId` (schema already), `PendingReceipt.itemId` in `receipts.ts`, tag picker + per-item thumbs in `AttachmentsSection.tsx`, tag wiring in `app/entry/[type].tsx` | `checklists.test.tsx` renders; schema in `schemas.test.ts` | One tag per photo, optional, editable; untagged land in the Photos row on the saved entry. |
+| CHK-08 | Done | Failed-item summary + `ShortcutRow` in `InspectionForm`; `?title` prefill in `app/reminder/[id].tsx` → `ReminderForm` (custom subject, no trigger); `?notes` prefill in `app/entry/[type].tsx` | `checklists.test.tsx` (shortcuts push the right routes/params) | Summary shows on the saved inspection whenever `failedItems` is non-empty. |
+| CHK-09 | Done | `src/ui/HistoryList.tsx` (inspection icon, `templateName` title, issue badge), `src/domain/entries.ts` search haystack += `templateName`, `dangerSoft` theme token | `checklists.test.tsx` (badge 0/1/2), `entries.test.ts` (templateName + notes match, item notes don't) | Issue badge uses the new `dangerSoft` token on both themes. |
+| CHK-10 | Partial | `docs/checklists-verification.md` — automated-coverage table + 9-row manual checklist + run record | `npm test` (552), `test:rules` (64), `test:emulator` (51), `guardrails`, `expo export --platform web` | Two-account, airplane-mode and Drive round-trip rows need the owner's devices/accounts. Rules: per-item validation stays repo-side — see rules note below. |
+
 ## Owner-only items
 
 - REM-12 device run: `docs/reminders-verification.md` needs an Android dev build and device(s), incl. an Android ≤12 target for the no-prompt check.
@@ -175,11 +190,12 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 - `public/privacy.html` keeps the source document's placeholders (`[date]`, `[location]`, the deletion-policy choice) — resolve them before the store listing goes live (VD-01).
 - SHR-01 spike (docs/sharing-verification.md S1–S5): two test Google accounts needed to confirm grant/revoke, notification-email behaviour and member-side access under `drive.file`; the app already implements the SD-09 assumption (Open in Drive only).
 - SHR-16 device run: `docs/sharing-verification.md` rows 1–18 — verified App Links, two-account join/leave/remove/transfer, real share sync, archive/delete on shared vehicles and the backup member-listing check.
+- CHK-10 manual run: `docs/checklists-verification.md` rows 1–9 — two-account template permissions, airplane-mode inspection, Drive round-trip of item-tagged photos, merge/backup/delete seams, archived-vehicle read-only, discard-on-leave and the web smoke pass.
 
 ## Verification (last run, this environment)
 
 - `npx tsc --noEmit` — clean.
-- `npm test` — 41 suites, 498 tests passed (unit + component + i18n-scanner; sharing coverage under `src/domain/__tests__/invites.test.ts`, `src/features/__tests__/invites.test.ts` + `receiptShare.test.ts`, `src/ui/__tests__/sharing.test.tsx`). The parallel run still prints a "worker failed to exit gracefully" teardown warning after all suites pass — no diagnosed leak.
+- `npm test` — 44 suites, 552 tests passed (unit + component + i18n-scanner; checklist coverage under `src/domain/__tests__/checklists.test.ts`, `src/features/__tests__/checklists.test.ts`, `src/ui/__tests__/checklists.test.tsx`). The parallel run still prints a "worker failed to exit gracefully" teardown warning after all suites pass — no diagnosed leak.
 - Firestore rules emulator (`npm run test:rules`) — 4 suites, 64 tests passed (incl. `rules.sharing.test.js` adversarial suite).
 - Repository emulator — 2 suites, 51 tests passed. Run inside the emulator: `cd firebase && npx firebase emulators:exec --only firestore --project demo-milevana "cd .. && npm run test:emulator"`. `jest.emulator.config.js` pins `maxWorkers: 1` — parallel workers raced on `clearFirestore()` and intermittently wiped each other's fixtures mid-test.
 - `npx eslint .` — clean (0 problems).
@@ -209,3 +225,13 @@ Emulator runs: **yes**, the Firestore emulator ran in this environment (Java 21)
   `.native`/`.web`) plus `localFiles`/`receiptPick`/`shareOut`/`receiptView`
   with the same three-file pattern. `EntryPatch` gained `uploaderUids` so a
   queued upload can record who uploaded the file.
+- Phase 7 note — rules vs item validation: wiring `templateItemOk` into
+  `validTemplate` (all 50 slots) makes Firestore deny *legitimate* 50-item
+  writes — `||` only absorbs the error's result, not its evaluation cost, so
+  every slot always evaluates and the request exceeds the 1000-expression
+  budget (emulator-verified). The rules therefore keep the documented
+  contract (members only, `createdBy` checks, ≤50 items) and item shape is
+  enforced by `templateRepo`'s zod schema on write plus skip-on-read.
+  `RNTL` note: `fireEvent.*` is async in `@testing-library/react-native` 14 —
+  every press/changeText in component tests must be awaited or the assertion
+  races the state flush (caused the "overlapping act()" warnings).

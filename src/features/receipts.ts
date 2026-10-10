@@ -46,6 +46,8 @@ export interface PendingReceipt {
   blob?: Blob;
   /** Web object url to revoke when the pending receipt is dropped. */
   objectUrl?: string;
+  /** CHK-07: inspection item tag — set on inspection attachments only (OQ-41). */
+  itemId?: string;
 }
 
 const newAttachmentId = () => adapter().newDocId('receipts');
@@ -58,6 +60,7 @@ export function toAttachment(uid: string, p: PendingReceipt): AttachmentDoc {
     sizeBytes: p.sizeBytes,
     status: p.status,
     ...(p.driveFileId ? { driveFileId: p.driveFileId } : {}),
+    ...(p.itemId ? { itemId: p.itemId } : {}),
     sharedWithUids: [],
   };
 }

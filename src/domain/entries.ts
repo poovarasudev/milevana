@@ -172,7 +172,9 @@ function haystack(e: Pick<EntryDoc, 'type' | 'date'> & {
   const parts: (string | undefined)[] = [e.notes, e.category];
   const d = e.details as Record<string, unknown> | undefined;
   if (d) {
-    parts.push(d.stationName as string, d.platform as string, d.from as string, d.to as string);
+    // templateName: inspection entries are found by their checklist name
+    // (CHK-09) — item notes inside details.items[].note are NOT searched.
+    parts.push(d.stationName as string, d.platform as string, d.from as string, d.to as string, d.templateName as string);
     if (Array.isArray(d.lines)) {
       for (const l of d.lines as { serviceType?: string; otherLabel?: string }[]) {
         parts.push(l.serviceType, l.otherLabel, l.serviceType ? serviceTypeLabel(l.serviceType, l.otherLabel) : undefined);

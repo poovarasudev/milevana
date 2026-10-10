@@ -12,6 +12,8 @@ export type TemplatePatch = Partial<TemplateInput>;
 
 export interface TemplateRecord extends ChecklistTemplateDoc {
   id: string;
+  /** Firestore hasPendingWrites — the sync indicator (CHK-02). */
+  pending: boolean;
 }
 
 export class TemplateRepo extends RepoBase {
@@ -67,7 +69,7 @@ export class TemplateRepo extends RepoBase {
     const out: TemplateRecord[] = [];
     for (const d of snap.docs) {
       const v = this.parse('checklistTemplates', checklistTemplateDocSchema, d, `vehicles/${vehicleId}/checklistTemplates/${d.id}`);
-      if (v !== null) out.push({ ...v, id: d.id });
+      if (v !== null) out.push({ ...v, id: d.id, pending: d.hasPendingWrites });
     }
     return out;
   }

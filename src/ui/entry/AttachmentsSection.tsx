@@ -8,7 +8,7 @@
 
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import type { AttachmentDoc } from '../../data/schema/entry';
 import type { EntryRecord } from '../../data/repos/entryRepo';
 import {
@@ -38,7 +38,69 @@ function statusLabel(att: AttachmentDoc): string | null {
   }
 }
 
-function SavedRow({ uid, vehicleId, entry, att, readOnly, onRemove, onRetry }: {
+// --- inspection item tags (CHK-07, CD-06) ---------------------------------------
+
+export interface TagOption {
+  id: string;
+  label: string;
+}
+
+/**
+ * A small "tag to item" control on an attachment row — one item or none
+ * (untagged is allowed; the tag can be changed while editing, CD-06).
+ */
+export function TagPicker({ options, value, onPick, readOnly }: {
+  options: TagOption[];
+  value?: string;
+  onPick: (itemId: string | null) => void;
+  readOnly?: boolean;
+}) {
+  const th = useTheme();
+  const [open, setOpen] = useState(false);
+  const label = options.find((o) => o.id === value)?.label ?? t('checklists.noTag');
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        disabled={readOnly}
+        onPress={() => setOpen(true)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, opacity: readOnly ? 0.8 : 1 }}
+      >
+        <Icon name="tag-outline" size={14} color={value ? th.primary : th.muted} />
+        <T size={12} weight="semi" color={value ? th.primary : th.muted}>{label}</T>
+      </Pressable>
+      <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(15,20,27,0.45)', justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={() => setOpen(false)} accessibilityLabel={t('common.close')} />
+          <View style={{ backgroundColor: th.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', padding: 16 }}>
+            <T weight="semi" style={{ marginBottom: 8 }}>{t('checklists.photoTag')}</T>
+            <ScrollView>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => { onPick(null); setOpen(false); }}
+                style={{ minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 }}
+              >
+                <T weight="semi" color={th.muted}>{t('checklists.noTag')}</T>
+              </Pressable>
+              {options.map((o) => (
+                <Pressable
+                  key={o.id}
+                  accessibilityRole="button"
+                  onPress={() => { onPick(o.id); setOpen(false); }}
+                  style={{ minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 }}
+                >
+                  <T weight="semi">{o.label}</T>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+function SavedRow({ uid, vehicleId, entry, att, readOnly, onRemove, onRetry, tag }: {
   uid: string;
   vehicleId: string;
   entry: EntryRecord;
@@ -46,6 +108,8 @@ function SavedRow({ uid, vehicleId, entry, att, readOnly, onRemove, onRetry }: {
   readOnly?: boolean;
   onRemove: () => void;
   onRetry: () => void;
+  /** CHK-07: item tag picker props — present on inspection attachments. */
+  tag?: { options: TagOption[]; value?: string; onPick: (id: string | null) => void };
 }) {
   const th = useTheme();
   const isImage = att.mimeType.startsWith('image/');
@@ -98,6 +162,9 @@ function SavedRow({ uid, vehicleId, entry, att, readOnly, onRemove, onRetry }: {
         <View style={{ flex: 1 }}>
           <T weight="semi">{attLabel(att)}</T>
           {status ? <T size={12} color={att.status === 'failed' || att.status === 'missing' ? th.danger : th.muted}>{status}</T> : null}
+          {tag ? (
+            <TagPicker options={tag.options} value={tag.value} onPick={tag.onPick} readOnly={readOnly} />
+          ) : null}
         </View>
       </Pressable>
       {att.status === 'failed' ? (
@@ -137,7 +204,11 @@ function SavedRow({ uid, vehicleId, entry, att, readOnly, onRemove, onRetry }: {
   );
 }
 
-function PendingRow({ p, onRemove }: { p: PendingReceipt; onRemove: () => void }) {
+function PendingRow({ p, onRemove, tag }: {
+  p: PendingReceipt;
+  onRemove: () => void;
+  tag?: { options: TagOption[]; value?: string; onPick: (id: string | null) => void };
+}) {
   const th = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
@@ -153,6 +224,9 @@ function PendingRow({ p, onRemove }: { p: PendingReceipt; onRemove: () => void }
         <T size={12} color={p.status === 'failed' ? th.danger : th.muted}>
           {p.status === 'failed' ? t('receipts.failed') : p.status === 'uploaded' ? t('receipts.uploaded') : t('receipts.waiting')}
         </T>
+        {tag ? (
+          <TagPicker options={tag.options} value={tag.value} onPick={tag.onPick} />
+        ) : null}
       </View>
       <IconButton
         icon="close"
@@ -172,10 +246,12 @@ function PendingRow({ p, onRemove }: { p: PendingReceipt; onRemove: () => void }
  * app"; a departed uploader the caller never had access to shows "No longer
  * available".
  */
-function MemberRow({ uid, vehicle, att }: {
+function MemberRow({ uid, vehicle, att, tagLabel }: {
   uid: string;
   vehicle: { memberIds: string[]; members?: Record<string, { name?: string }> };
   att: AttachmentDoc;
+  /** CHK-07: the item this photo is tagged to (another member's pick). */
+  tagLabel?: string;
 }) {
   const th = useTheme();
   const online = useOnline();
@@ -206,6 +282,12 @@ function MemberRow({ uid, vehicle, att }: {
                 ? t('receipts.pendingShare', { name: uploaderName ?? t('receipts.aMember') })
                 : t('receipts.noLongerAvailable')}
           </T>
+          {tagLabel ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon name="tag-outline" size={14} color={th.primary} />
+              <T size={12} weight="semi" color={th.primary}>{tagLabel}</T>
+            </View>
+          ) : null}
         </View>
         {openable ? <Icon name="open-in-new" color={th.primary} size={18} /> : null}
       </Pressable>
@@ -213,7 +295,7 @@ function MemberRow({ uid, vehicle, att }: {
   );
 }
 
-export function AttachmentsSection({ uid, vehicleId, vehicle, entry, attachments, pendings, readOnly, error, onAdd, onRemoveExisting, onRemovePending, onRetry }: {
+export function AttachmentsSection({ uid, vehicleId, vehicle, entry, attachments, pendings, readOnly, error, onAdd, onRemoveExisting, onRemovePending, onRetry, tagOptions, tagFor, onTag }: {
   uid: string;
   vehicleId: string;
   /** Needed to classify other members' receipts (SHR-15); omit in tests. */
@@ -227,6 +309,10 @@ export function AttachmentsSection({ uid, vehicleId, vehicle, entry, attachments
   onRemoveExisting: (att: AttachmentDoc) => void;
   onRemovePending: (p: PendingReceipt) => void;
   onRetry: (att: AttachmentDoc) => void;
+  /** CHK-07: on inspections each attachment carries at most one item tag. */
+  tagOptions?: TagOption[];
+  tagFor?: (a: AttachmentDoc | PendingReceipt) => string | undefined;
+  onTag?: (a: AttachmentDoc | PendingReceipt, itemId: string | null) => void;
 }) {
   const th = useTheme();
   const web = adapter().platform === 'web';
@@ -240,7 +326,13 @@ export function AttachmentsSection({ uid, vehicleId, vehicle, entry, attachments
       <View style={{ borderWidth: 1, borderColor: th.divider, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: th.card }}>
         {entry ? attachments.map((att) => (
           vehicle && memberReceiptState(att, uid, vehicle) !== 'own' ? (
-            <MemberRow key={att.id} uid={uid} vehicle={vehicle} att={att} />
+            <MemberRow
+              key={att.id}
+              uid={uid}
+              vehicle={vehicle}
+              att={att}
+              tagLabel={att.itemId ? tagOptions?.find((o) => o.id === att.itemId)?.label : undefined}
+            />
           ) : (
             <SavedRow
               key={att.id}
@@ -251,11 +343,25 @@ export function AttachmentsSection({ uid, vehicleId, vehicle, entry, attachments
               readOnly={readOnly}
               onRemove={() => onRemoveExisting(att)}
               onRetry={() => onRetry(att)}
+              tag={tagOptions && onTag ? {
+                options: tagOptions,
+                value: tagFor?.(att),
+                onPick: (id) => onTag(att, id),
+              } : undefined}
             />
           )
         )) : null}
         {pendings.map((p) => (
-          <PendingRow key={p.id} p={p} onRemove={() => onRemovePending(p)} />
+          <PendingRow
+            key={p.id}
+            p={p}
+            onRemove={() => onRemovePending(p)}
+            tag={tagOptions && onTag ? {
+              options: tagOptions,
+              value: tagFor?.(p),
+              onPick: (id) => onTag(p, id),
+            } : undefined}
+          />
         ))}
         {count === 0 && !canAdd ? (
           <T size={13} color={th.muted} style={{ paddingVertical: 10 }}> </T>
@@ -302,4 +408,75 @@ function useOnline(): boolean {
   } catch {
     return true;
   }
+}
+
+/**
+ * A compact 44px attachment thumbnail used by the inspection item view
+ * (CHK-07, CD-06): tagged photos render under their item. An own uploaded
+ * image shows its thumbnail and opens full-screen on tap; PDFs and other
+ * members' receipts open in Drive or show an icon.
+ */
+export function AttachmentThumb({ uid, vehicleId, vehicle, entry, att }: {
+  uid: string;
+  vehicleId: string;
+  vehicle?: { memberIds: string[] };
+  entry: EntryRecord;
+  att: AttachmentDoc;
+}) {
+  const th = useTheme();
+  const isImage = att.mimeType.startsWith('image/');
+  const member = vehicle ? memberReceiptState(att, uid, vehicle) !== 'own' : false;
+  const [src, setSrc] = useState<{ uri: string; headers?: Record<string, string> } | null>(null);
+  const [viewer, setViewer] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    if (!member && att.status === 'uploaded' && isImage) {
+      receiptSource(uid, vehicleId, entry, att)
+        .then((s) => { if (live) setSrc(s); })
+        .catch(() => undefined);
+    }
+    return () => { live = false; };
+  }, [att, entry, isImage, member, uid, vehicleId]);
+
+  const open = async () => {
+    if (member) {
+      await openInDrive(att);
+      return;
+    }
+    if (att.status !== 'uploaded') return;
+    if (isImage) setViewer(true);
+    else await openReceipt(uid, vehicleId, entry, att).catch(() => undefined);
+  };
+
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={attLabel(att)}
+        onPress={() => void open()}
+        style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: th.divider, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
+      >
+        {!member && isImage && src ? (
+          <Image source={{ uri: src.uri, headers: src.headers }} style={{ width: 44, height: 44 }} contentFit="cover" />
+        ) : (
+          <Icon
+            name={member ? 'open-in-new' : att.mimeType === 'application/pdf' ? 'file-pdf-box' : 'image-outline'}
+            color={th.muted}
+            size={20}
+          />
+        )}
+      </Pressable>
+      {viewer && src ? (
+        <Modal visible animationType="fade" onRequestClose={() => setViewer(false)}>
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            <Image source={{ uri: src.uri, headers: src.headers }} style={{ flex: 1 }} contentFit="contain" />
+            <View style={{ position: 'absolute', top: 48, right: 20 }}>
+              <IconButton icon="close" color="#fff" accessibilityLabel={t('common.close')} onPress={() => setViewer(false)} />
+            </View>
+          </View>
+        </Modal>
+      ) : null}
+    </View>
+  );
 }

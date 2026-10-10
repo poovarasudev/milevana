@@ -9,6 +9,7 @@ import type { MalformedDocInfo } from '../data/repos/base';
 import type { UserDoc } from '../data/schema/user';
 import type { EntryRecord } from '../data/repos/entryRepo';
 import type { ReminderRecord } from '../data/repos/reminderRepo';
+import type { TemplateRecord } from '../data/repos/templateRepo';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import type { NotificationPermissionState } from '../data/notifications';
 
@@ -61,6 +62,10 @@ interface AppState {
   reportEntriesArrived: Record<string, boolean>;
   /** Vehicles whose report load failed — "Couldn't load <name>" (RPT-12). */
   reportEntriesFailed: Record<string, boolean>;
+  /** Latest checklist templates watch for the selected vehicle (CHK-02). */
+  templates: TemplateRecord[];
+  templatesVehicleId: string | null;
+  templatesArrived: boolean;
   /** Latest reminders watch snapshot per vehicle id (REM-04 read model). */
   reminders: Record<string, ReminderRecord[]>;
   /** Vehicles whose reminders watch has emitted at least once. */
@@ -142,6 +147,9 @@ const initial: Omit<AppState, 'set'> = {
   reportEntries: {},
   reportEntriesArrived: {},
   reportEntriesFailed: {},
+  templates: [],
+  templatesVehicleId: null,
+  templatesArrived: false,
   reminders: {},
   remindersArrived: {},
   odoEntries: {},

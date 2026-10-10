@@ -8,8 +8,10 @@ import type { EntryRecord } from '../data/repos/entryRepo';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { tsToMillis } from '../data/schema/common';
 import type {
-  FuelDetailsDoc, IncomeDetailsDoc, ServiceDetailsDoc, TripDetailsDoc,
+  FuelDetailsDoc, IncomeDetailsDoc, InspectionDetailsDoc, ServiceDetailsDoc,
+  TripDetailsDoc,
 } from '../data/schema/entry';
+import { issuesBadge } from '../domain/checklists';
 import { formatMileage } from '../domain/fuel';
 import { formatAmount } from '../domain/money';
 import { canDeleteEntry } from '../features/entries';
@@ -28,6 +30,11 @@ const ICONS: Record<string, IconName> = {
   inspection: 'clipboard-check-outline',
 };
 
+/** CHK-09: the issue badge count ('No issues' at 0). */
+function inspectionIssues(e: EntryRecord): number {
+  return (e.details as InspectionDetailsDoc | undefined)?.issueCount ?? 0;
+}
+
 function rowIcon(e: EntryRecord): IconName {
   const d = e.details as FuelDetailsDoc | undefined;
   if (e.type === 'fuel' && d?.fuelType === 'electric') return 'ev-station';
@@ -44,8 +51,12 @@ function rowTitle(e: EntryRecord): string {
       const d = e.details as TripDetailsDoc;
       return d?.from || d?.to ? `${d.from || '—'} → ${d.to || '—'}` : t('history.tripNoRoute');
     }
-    case 'inspection':
-      return t('entryTypes.inspection');
+    case 'inspection': {
+      // CHK-09: the row names the checklist it ran from — readable even
+      // after the template was renamed or deleted (snapshot).
+      const d = e.details as InspectionDetailsDoc | undefined;
+      return d?.templateName || t('entryTypes.inspection');
+    }
     default:
       return e.category ?? t(`entryTypes.${e.type}`);
   }
@@ -88,6 +99,16 @@ export function EntryRow({ entry, vehicle, uid, mileageRate, onDelete }: {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <T weight="semi" numberOfLines={1} style={{ flexShrink: 1 }}>{rowTitle(entry)}</T>
           {entry.pending ? <Icon name="clock-outline" size={13} color={th.muted} /> : null}
+          {entry.type === 'inspection' ? (
+            <View style={{
+              borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2,
+              backgroundColor: inspectionIssues(entry) > 0 ? th.dangerSoft : th.primarySoft,
+            }}>
+              <T size={11} weight="bold" color={inspectionIssues(entry) > 0 ? th.danger : th.primary}>
+                {issuesBadge(inspectionIssues(entry), t)}
+              </T>
+            </View>
+          ) : null}
         </View>
         <T size={12} color={th.muted} numberOfLines={1}>
           {formatDate(entry.date, settings.dateFormat)}

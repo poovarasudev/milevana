@@ -106,10 +106,13 @@ function seedFromPreset(preset: ReminderPreset, vehicle: VehicleRecord): Seed {
   };
 }
 
-function seedNew(vehicle: VehicleRecord, preset?: ReminderPreset): Seed {
+function seedNew(vehicle: VehicleRecord, preset?: ReminderPreset, prefillTitle?: string): Seed {
   if (preset) return seedFromPreset(preset, vehicle);
   return {
-    kind: 'custom', serviceType: '', category: '', otherName: '', title: '',
+    // CHK-08: the failed-item shortcut arrives with a title — a custom
+    // reminder with no trigger pre-filled.
+    kind: 'custom', serviceType: '', category: '', otherName: '',
+    title: prefillTitle ?? '',
     dateOn: false, repeatMonths: '', odoOn: false, dueOdo: '', repeatDist: '',
     leadDays: String(DEFAULT_LEAD_DAYS), leadDist: String(DEFAULT_LEAD_DISTANCE), amount: '',
   };
@@ -124,10 +127,12 @@ function parseRange(text: string, min: number, max: number, integer: boolean): n
   return n;
 }
 
-export function ReminderForm({ vehicle, reminder, preset, saving, saveError, onSubmit, onDelete }: {
+export function ReminderForm({ vehicle, reminder, preset, prefillTitle, saving, saveError, onSubmit, onDelete }: {
   vehicle: VehicleRecord;
   reminder?: ReminderRecord;
   preset?: ReminderPreset;
+  /** CHK-08 "Create reminder": pre-filled title on a blank custom reminder. */
+  prefillTitle?: string;
   saving?: boolean;
   saveError?: string | null;
   onSubmit: (v: ReminderFormResult) => void;
@@ -136,13 +141,13 @@ export function ReminderForm({ vehicle, reminder, preset, saving, saveError, onS
   const th = useTheme();
   const online = useAppStore((s) => s.online);
   const web = isWeb();
-  const seed = reminder ? seedFromReminder(reminder, vehicle.currency) : seedNew(vehicle, preset);
+  const seed = reminder ? seedFromReminder(reminder, vehicle.currency) : seedNew(vehicle, preset, prefillTitle);
   const [kind, setKind] = useState(seed.kind);
   const [serviceType, setServiceType] = useState(seed.serviceType);
   const [category, setCategory] = useState(seed.category);
   const [otherName, setOtherName] = useState(seed.otherName);
   const [title, setTitle] = useState(seed.title);
-  const [titleTouched, setTitleTouched] = useState(!!reminder);
+  const [titleTouched, setTitleTouched] = useState(!!reminder || !!prefillTitle);
   const [dateOn, setDateOn] = useState(seed.dateOn);
   const [dueDate, setDueDate] = useState<Date | undefined>(seed.dueDate);
   const [repeatMonths, setRepeatMonths] = useState(seed.repeatMonths);

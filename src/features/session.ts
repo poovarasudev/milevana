@@ -15,6 +15,7 @@ import type { MalformedDocInfo } from '../data/repos/base';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
 import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
+import { startTemplatesWatch } from './checklists';
 import { maybeRunAutomaticBackup } from './backup';
 import { installReceiptShareSync } from './receiptShare';
 import { runPendingDriveDeletes } from './driveDeletes';
@@ -32,6 +33,8 @@ let lifecycleStops: (() => void)[] = [];
 let sessionStops: (() => void)[] = [];
 let entriesWatchStop: (() => void) | null = null;
 let entriesWatchId: string | null = null;
+let templatesWatchStop: (() => void) | null = null;
+let templatesWatchId: string | null = null;
 let started = false;
 let sessionToken = 0;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -91,17 +94,28 @@ function teardownSession(): void {
   entriesWatchStop?.();
   entriesWatchStop = null;
   entriesWatchId = null;
+  templatesWatchStop?.();
+  templatesWatchStop = null;
+  templatesWatchId = null;
   commitPendingDeletes(); // LD-12: leaving mid-window commits the deletes
 }
 
 /** History read-model watch follows the selected vehicle (LOG-11, LD-10). */
 function syncSelectedEntriesWatch(): void {
   const vid = useAppStore.getState().selectedVehicleId;
-  if (vid === entriesWatchId) return;
-  entriesWatchStop?.();
-  entriesWatchStop = null;
-  entriesWatchId = vid;
-  if (vid) entriesWatchStop = startEntriesWatch(vid);
+  if (vid !== entriesWatchId) {
+    entriesWatchStop?.();
+    entriesWatchStop = null;
+    entriesWatchId = vid;
+    if (vid) entriesWatchStop = startEntriesWatch(vid);
+  }
+  if (vid !== templatesWatchId) {
+    templatesWatchStop?.();
+    templatesWatchStop = null;
+    templatesWatchId = vid;
+    // CHK-02: the templates watch follows the same selection.
+    if (vid) templatesWatchStop = startTemplatesWatch(vid);
+  }
 }
 
 /** Sign-out pre-step: stop watchers and invalidate in-flight session work so
@@ -124,6 +138,9 @@ export function pauseSession(): void {
     reportsAllVehicles: false,
     reminders: {},
     remindersArrived: {},
+    templates: [],
+    templatesVehicleId: null,
+    templatesArrived: false,
     odoEntries: {},
     snoozes: {},
     odoAlerted: {},
@@ -170,6 +187,9 @@ async function handleAuthChange(user: AuthUser | null): Promise<void> {
       reportsAllVehicles: false,
       reminders: {},
       remindersArrived: {},
+      templates: [],
+      templatesVehicleId: null,
+      templatesArrived: false,
       odoEntries: {},
       snoozes: {},
       odoAlerted: {},
