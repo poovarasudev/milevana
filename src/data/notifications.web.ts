@@ -3,8 +3,8 @@
 
 import type {
   NotificationClient, NotificationPermissionState,
-} from './notifications';
-import { setNotificationsFactory } from './notifications';
+} from './notificationsCore';
+import { setNotificationsFactory } from './notificationsCore';
 
 const noop = (): void => undefined;
 
@@ -22,3 +22,5 @@ const webClient: NotificationClient = {
 setNotificationsFactory(() => webClient);
 
 export {};
+
+export * from './notificationsCore';

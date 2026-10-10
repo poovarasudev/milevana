@@ -56,6 +56,21 @@ for (const dir of SCAN_DIRS) {
       }
     }
 
+    // Metro resolves './name' to name.web.ts / name.native.ts on that platform, so a
+    // platform file that imports a VALUE from its own neutral sibling gets itself
+    // back (undefined exports at runtime) while Jest, which has no platform
+    // extensions, still passes. Shared contracts go in a separate file.
+    const platformFile = /(?:^|\/)([^/]+)\.(native|web)\.[tj]sx?$/.exec(rel);
+    if (platformFile && !isTest) {
+      const selfImport = new RegExp(
+        "^\\s*(?:import|export)\\s+(?!type\\b)[^;]*?from\\s+['\"]\\./" + platformFile[1] + "['\"]",
+        'm',
+      );
+      if (selfImport.test(src)) {
+        violations.push(`${rel}: imports a value from './${platformFile[1]}', which resolves back to this platform file on that platform; move the shared contract to ${platformFile[1]}Core.ts`);
+      }
+    }
+
     if (!isAdapter && !isUiLayer && PLATFORM_RE.test(src)) {
       violations.push(`${rel}: branches on Platform.OS/Platform.select outside an adapter`);
     }

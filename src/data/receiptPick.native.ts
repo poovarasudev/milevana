@@ -15,7 +15,7 @@ import {
   PickedReceipt,
   ReceiptPickError,
   ReceiptPicker,
-} from './receiptPick';
+} from './receiptPickCore';
 
 let seq = 0;
 const nextName = (ext: string) => `receipt-${Date.now()}-${++seq}.${ext}`;
@@ -80,3 +80,9 @@ export function receiptPicker(): ReceiptPicker {
   if (!singleton) singleton = createNativeReceiptPicker();
   return singleton;
 }
+
+export {
+  PDF_MAX_BYTES, PHOTO_LONG_EDGE, PHOTO_QUALITY, ReceiptPickError, resetReceiptPickerForTests,
+  setReceiptPickerFactory,
+} from './receiptPickCore';
+export type { PickedReceipt, ReceiptPicker } from './receiptPickCore';

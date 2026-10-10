@@ -3,7 +3,7 @@
 // offers the camera. No persistent staging; the Blob uploads directly and the
 // entry is saved only after the upload finishes.
 
-import { PDF_MAX_BYTES, PickedReceipt, ReceiptPickError, ReceiptPicker } from './receiptPick';
+import { PDF_MAX_BYTES, PickedReceipt, ReceiptPickError, ReceiptPicker } from './receiptPickCore';
 
 function pick(accept: string, capture?: boolean): Promise<File | null> {
   return new Promise((resolve, reject) => {
@@ -60,3 +60,9 @@ export function receiptPicker(): ReceiptPicker {
   if (!singleton) singleton = createWebReceiptPicker();
   return singleton;
 }
+
+export {
+  PDF_MAX_BYTES, PHOTO_LONG_EDGE, PHOTO_QUALITY, ReceiptPickError, resetReceiptPickerForTests,
+  setReceiptPickerFactory,
+} from './receiptPickCore';
+export type { PickedReceipt, ReceiptPicker } from './receiptPickCore';

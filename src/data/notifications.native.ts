@@ -8,8 +8,8 @@ import { Linking, Platform } from 'react-native';
 import type {
   NotificationClient, NotificationPermissionState, ReminderNotificationData,
   ScheduledReminder,
-} from './notifications';
-import { setNotificationsFactory } from './notifications';
+} from './notificationsCore';
+import { setNotificationsFactory } from './notificationsCore';
 
 const CHANNEL_ID = 'reminders';
 
@@ -127,3 +127,5 @@ const nativeClient: NotificationClient = {
 setNotificationsFactory(() => nativeClient);
 
 export {};
+
+export * from './notificationsCore';

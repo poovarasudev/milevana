@@ -7,7 +7,7 @@ import { File } from 'expo-file-system';
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import { GOOGLE_WEB_CLIENT_ID } from '../firebaseConfig';
 import { DriveApi } from './api';
-import { DRIVE_SCOPE, DriveClient, DriveError, DriveMediaSource, DriveUploadMeta } from './client';
+import { DRIVE_SCOPE, DriveClient, DriveError, DriveMediaSource, DriveUploadMeta } from './clientCore';
 
 let configured = false;
 function configure(): void {
@@ -120,3 +120,10 @@ export function drive(): DriveClient {
   if (!singleton) singleton = createNativeDriveClient();
   return singleton;
 }
+
+export {
+  DRIVE_FOLDER_MIME, DRIVE_SCOPE, DriveError, resetDriveForTests, setDriveFactory,
+} from './clientCore';
+export type {
+  DriveClient, DriveErrorCode, DriveFileMeta, DriveMediaSource, DrivePermission, DriveUploadMeta,
+} from './clientCore';

@@ -2,7 +2,7 @@
 // receipt cache live in memory for the page session (web is online-only,
 // ED-14). Downloads are handed to the browser as object URLs by the caller.
 
-import { LocalFiles } from './localFiles';
+import type { LocalFiles } from './localFiles';
 
 const blobs = new Map<string, Blob>();
 const key = (fileName: string, area: string) => `mvweb://${area}/${fileName}`;

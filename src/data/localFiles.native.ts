@@ -3,7 +3,7 @@
 // Android may reclaim them under pressure (cache, not documents).
 
 import { Directory, File, Paths } from 'expo-file-system';
-import { LocalFileRef, LocalFiles } from './localFiles';
+import type { LocalFileRef, LocalFiles } from './localFiles';
 
 const stagingDir = new Directory(Paths.cache, 'mv-staging');
 const cacheDir = new Directory(Paths.cache, 'mv-receipts');

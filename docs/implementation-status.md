@@ -269,3 +269,11 @@ Emulator runs: **yes**, the Firestore emulator ran in this environment (Java 21)
   `RNTL` note: `fireEvent.*` is async in `@testing-library/react-native` 14 —
   every press/changeText in component tests must be awaited or the assertion
   races the state flush (caused the "overlapping act()" warnings).
+
+## Post-phase corrections (2026-10-10)
+
+A browser smoke run of the web build found three defects that the Jest suites could not see, because Jest has no platform file extensions:
+
+- **Platform self-import.** `notifications.web.ts` / `.native.ts`, `receiptPick.*` and `drive/client.*` imported values from their neutral sibling (`./notifications`, `./receiptPick`, `./client`), which Metro resolves back to the platform file itself. The web app crashed on load (`setNotificationsFactory is not a function`) and `DRIVE_SCOPE`/`DriveError`/`ReceiptPickError` would have been undefined. The shared contracts now live in `notificationsCore.ts`, `receiptPickCore.ts` and `drive/clientCore.ts`, and `scripts/check-boundaries.mjs` fails on any platform file that imports a value from its own neutral sibling.
+- **Missing peer dependency.** `react-native-gifted-charts` needs `expo-linear-gradient`; Reports crashed on load. Installed.
+- The smoke run covered only the signed-out web landing page (Google sign-in cannot be automated). Signed-in screens on web and everything on Android are still unverified in a browser or on a device.

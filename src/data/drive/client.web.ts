@@ -7,7 +7,7 @@
 import { getFirebase } from '../firebase';
 import { GOOGLE_WEB_CLIENT_ID } from '../firebaseConfig';
 import { DriveApi } from './api';
-import { DRIVE_SCOPE, DriveClient, DriveError, DriveMediaSource, DriveUploadMeta } from './client';
+import { DRIVE_SCOPE, DriveClient, DriveError, DriveMediaSource, DriveUploadMeta } from './clientCore';
 
 // Minimal typings for the GIS token client — the library ships no types.
 interface TokenResponse {
@@ -245,3 +245,10 @@ export function drive(): DriveClient {
   if (!singleton) singleton = createWebDriveClient();
   return singleton;
 }
+
+export {
+  DRIVE_FOLDER_MIME, DRIVE_SCOPE, DriveError, resetDriveForTests, setDriveFactory,
+} from './clientCore';
+export type {
+  DriveClient, DriveErrorCode, DriveFileMeta, DriveMediaSource, DrivePermission, DriveUploadMeta,
+} from './clientCore';
