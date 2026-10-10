@@ -14,12 +14,14 @@ import {
   collection, connectFirestoreEmulator, doc, DocumentSnapshot, Firestore,
   getDoc, getDocFromServer, getDocs, getDocsFromServer, getFirestore, limit as qLimit,
   onSnapshot, orderBy as qOrderBy, query, QueryConstraint, QuerySnapshot,
-  serverTimestamp, setDoc, updateDoc, deleteDoc, Timestamp as FsTimestamp,
+  arrayUnion as fsArrayUnion, serverTimestamp, setDoc, updateDoc, deleteDoc,
+  Timestamp as FsTimestamp,
   waitForPendingWrites, where as qWhere, writeBatch, WriteBatch as SdkWriteBatch,
 } from 'firebase/firestore';
 import {
-  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, normalizeAuthError,
-  normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
+  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, isArrayUnion,
+  normalizeAuthError, normalizeError, QuerySnap, QuerySpec, RepoError,
+  SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
 } from './adapter';
 import {
   FIRESTORE_EMULATOR_HOST, FirebaseConfigError, firebaseConfig, GOOGLE_WEB_CLIENT_ID,
@@ -51,6 +53,7 @@ function isTimestampLike(v: unknown): v is DomainTimestamp {
 
 export function encodeWriteData(data: unknown): unknown {
   if (data === SERVER_TIMESTAMP) return serverTimestamp();
+  if (isArrayUnion(data)) return fsArrayUnion(...data.__milevanaArrayUnion.map(encodeWriteData));
   if (isTimestampLike(data)) return new FsTimestamp(data.seconds, data.nanoseconds);
   if (Array.isArray(data)) return data.map(encodeWriteData);
   if (typeof data === 'object' && data !== null) {

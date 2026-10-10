@@ -3,8 +3,8 @@
 // `nextCommit` controls ack behaviour for the Sync issues tests.
 
 import {
-  AuthUser, CommitHandle, DocSnap, FirebaseAdapter, QueryClause, QuerySnap,
-  QuerySpec, RepoError, Unsubscribe, WriteBatch, WriteOpRecord,
+  AuthUser, CommitHandle, DocSnap, FirebaseAdapter, isArrayUnion, QueryClause,
+  QuerySnap, QuerySpec, RepoError, Unsubscribe, WriteBatch, WriteOpRecord,
 } from '../../data/adapter';
 import { Timestamp } from '../../data/schema/common';
 
@@ -126,6 +126,28 @@ export class FakeAdapter implements FirebaseAdapter {
     };
   }
 
+  /** Mirror updateDoc semantics: dot-path keys expand into nested objects and
+   * arrayUnion markers append unseen values to the existing array. */
+  private applyUpdate(path: string, data: Record<string, unknown>): void {
+    const out = { ...(this.docs.get(path) ?? {}) };
+    for (const [key, v] of Object.entries(data)) {
+      const parts = key.split('.');
+      let cur: Record<string, unknown> = out;
+      for (let i = 0; i < parts.length - 1; i++) {
+        cur[parts[i]] = { ...((cur[parts[i]] as Record<string, unknown>) ?? {}) };
+        cur = cur[parts[i]] as Record<string, unknown>;
+      }
+      const leaf = parts[parts.length - 1];
+      if (isArrayUnion(v)) {
+        const existing = Array.isArray(cur[leaf]) ? (cur[leaf] as unknown[]) : [];
+        cur[leaf] = [...existing, ...v.__milevanaArrayUnion.filter((x) => !existing.includes(x))];
+      } else {
+        cur[leaf] = v;
+      }
+    }
+    this.docs.set(path, out);
+  }
+
   private applyOps(ops: WriteOpRecord[]): CommitHandle {
     if (this.commitAck !== 'ok') {
       const err = this.commitAck.reject;
@@ -134,7 +156,7 @@ export class FakeAdapter implements FirebaseAdapter {
     for (const o of ops) {
       if (o.op === 'delete') this.docs.delete(o.path);
       else if (o.op === 'set') this.docs.set(o.path, { ...o.data });
-      else this.docs.set(o.path, { ...this.docs.get(o.path), ...o.data });
+      else this.applyUpdate(o.path, o.data ?? {});
     }
     this.emit();
     return { ops: ops.length, ack: Promise.resolve(), journal: ops };

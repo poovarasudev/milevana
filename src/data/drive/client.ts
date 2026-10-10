@@ -60,6 +60,17 @@ export interface DriveUploadMeta {
   properties?: Record<string, string>;
 }
 
+/** One permission record on a Drive file (SHR-14 share sync). */
+export interface DrivePermission {
+  id: string;
+  /** 'user' | 'group' | 'domain' | 'anyone'. */
+  type: string;
+  /** 'owner' | 'organizer' | 'fileOrganizer' | 'writer' | 'commenter' | 'reader'. */
+  role: string;
+  /** Present for 'user'/'group' permissions. */
+  emailAddress?: string;
+}
+
 export interface DriveClient {
   /**
    * Interactive incremental consent for drive.file (DRV-03/04). Resolves on
@@ -100,6 +111,15 @@ export interface DriveClient {
   thumbnailFor(fileId: string): Promise<{ uri: string; headers?: Record<string, string> } | null>;
   /** Permanent delete; already-gone resolves cleanly (ED-10). */
   deleteFile(fileId: string): Promise<void>;
+
+  // --- sharing (SHR-14): only ever reader-by-email, no notification mail ---
+
+  /** Grant `reader` to a Google account; Drive sends no email (SD-08). */
+  addReaderPermission(fileId: string, email: string): Promise<void>;
+  /** Every permission on the file — the share sync reads this to revoke. */
+  listPermissions(fileId: string): Promise<DrivePermission[]>;
+  /** Remove a permission; already-gone resolves cleanly. */
+  removePermission(fileId: string, permissionId: string): Promise<void>;
 }
 
 let factory: (() => DriveClient) | null = null;

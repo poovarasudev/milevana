@@ -257,14 +257,14 @@ describe('checklist templates', () => {
   });
 });
 
-// ---------- invites (all denied) ----------
+// ---------- invites (opened by SHR-04 — full matrix in rules.sharing.test.js) ----------
 describe('invites', () => {
-  test('read/create/update/delete all denied, signed in or not', async () => {
+  test('exact-code get for signed-in users; signed-out denied', async () => {
+    // An invite is only readable while its vehicle exists — a deleted
+    // vehicle's invite reads fail so the join screen can say "gone".
+    await seed('vehicles/v1', vehicle('alice'));
     await seed('invites/K7QXM2PA', { vehicleId: 'v1', ownerId: 'alice' });
-    await assertFails(getDoc(doc(db('alice'), 'invites', 'K7QXM2PA')));
-    await assertFails(setDoc(doc(db('alice'), 'invites', 'K7QXM2PA'), { vehicleId: 'v1' }));
-    await assertFails(updateDoc(doc(db('alice'), 'invites', 'K7QXM2PA'), { usedBy: 'alice' }));
-    await assertFails(deleteDoc(doc(db('alice'), 'invites', 'K7QXM2PA')));
+    await assertSucceeds(getDoc(doc(db('alice'), 'invites', 'K7QXM2PA')));
     await assertFails(getDoc(doc(anon(), 'invites', 'K7QXM2PA')));
   });
 });

@@ -10,6 +10,7 @@ import {
 import type { User } from '@react-native-firebase/auth';
 import { crash as crashlyticsCrash, getCrashlytics, recordError, setAttribute } from '@react-native-firebase/crashlytics';
 import {
+  arrayUnion as fsArrayUnion,
   collection, clearPersistence, deleteDoc, doc, getDoc, getDocFromCache,
   getDocFromServer, getDocs, getDocsFromCache, getDocsFromServer,
   getFirestore, limit as qLimit, onSnapshot, orderBy as qOrderBy, query,
@@ -22,8 +23,9 @@ import type {
 } from '@react-native-firebase/firestore';
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import {
-  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, normalizeAuthError,
-  normalizeError, QuerySnap, QuerySpec, RepoError, SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
+  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, isArrayUnion,
+  normalizeAuthError, normalizeError, QuerySnap, QuerySpec, RepoError,
+  SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
 } from './adapter';
 import { GOOGLE_WEB_CLIENT_ID } from './firebaseConfig';
 import type { Timestamp as DomainTimestamp } from './schema/common';
@@ -41,6 +43,7 @@ function isTimestampLike(v: unknown): v is DomainTimestamp {
 
 function encodeWriteData(data: unknown): unknown {
   if (data === SERVER_TIMESTAMP) return serverTimestamp();
+  if (isArrayUnion(data)) return fsArrayUnion(...data.__milevanaArrayUnion.map(encodeWriteData));
   if (isTimestampLike(data)) return new FsTimestamp(data.seconds, data.nanoseconds);
   if (Array.isArray(data)) return data.map(encodeWriteData);
   if (typeof data === 'object' && data !== null) {

@@ -322,3 +322,75 @@ or an aggregate doc) remain the available moves.
 Gate G2 for tab 5 does not pass cleanly at this model: DRV-08 and DRV-10 are
 recorded as implemented with the marginal breach flagged for re-check on
 real telemetry.
+
+---
+
+# SHR-03 — Sharing quota budget (gate G2, tab 6)
+
+Same method and threshold (DR-20: ≤ 25,000 reads and ≤ 10,000 writes/day at
+500 DAU). Session model unchanged; Drive API permission calls are outside
+Firestore quota and are not counted. Counted from `src/data/repos/inviteRepo.ts`,
+`src/data/repos/vehicleRepo.ts` membership ops, `src/data/repos/entryRepo.ts`
+(`listUploadedBy`) and `src/features/receiptShare.ts`.
+
+Model additions: 30% of users belong to a shared vehicle (~150 uploaders —
+members who upload receipts — active/day); each shared vehicle averages
+~15 entries carrying the uploader's attachments; ~10 invites created, ~8
+joins, ~5 membership changes fleet-wide per day; the receipt share sync runs
+≈4 times/day per active uploader (app open + foreground returns, bounded by
+the 15-minute per-vehicle throttle in SD-08).
+
+## Per-operation counts (Sharing)
+
+| Operation | Reads | Writes | Notes |
+| --- | --- | --- | --- |
+| Invite create | 1 | 1 | Rules `vehicleData` read + `invites/{code}` set. Collision retry ≤5 (SD-02) is rare and bounded. |
+| Invite get by code | 2 | 0 | `getDoc` + rules `vehicleData` existence check (SD-01; deleted vehicle → denied → "no longer exists"). |
+| Owner pending-invite list | ≤ 10 | 0 | `ownerId ==` query, vehicleId filtered client-side; capped by the 5-pending limit plus stragglers. |
+| Invite cancel | 1 | 1 | Rules existence read + `deleteDoc`. |
+| Join (atomic) | 3 | 2 | Rules read invite + vehicle + request resource; batch writes `members[uid]` + `memberIds` union and `usedBy/usedAt`. Inside OQ-35's write-read limit. |
+| Leave / remove / transfer | 2 | 1 | Rules `vehicleData` get + one vehicle `updateDoc`. |
+| Share sync run per vehicle | N_up | 0–1 per changed entry | `uploaderUids array-contains` worklist (N_up = entries with the caller's uploads, ~15). `sharedWithUids` writes only when the grant set changed; each entry write bills entry + vehicle rules gets. |
+| Members list / switcher count | 0 | 0 | Reads the watched vehicle read model — no extra query (SHR-10). |
+| 'Open in Drive' tap | 0 | 0 | A URL open; the Drive permission is checked by Google, not Firestore. |
+
+## Daily projection (500 DAU)
+
+| Driver | Reads/day | Writes/day |
+| --- | --- | --- |
+| Share sync (150 uploaders × 4 runs × ~15 docs) | ≈ 9,000 | 0 |
+| `sharedWithUids` updates (~50 entry writes × 2 rules reads) | 100 | 50 |
+| Invites (10 creates, 8 joins, 12 lookups, 3 cancels, ~40 pending-list loads) | ≈ 450 | ≈ 25 |
+| Membership changes (5/day) | 10 | 5 |
+| **Sharing total** | **≈ 9,560** | **≈ 80** |
+| **Carry-over (FND + LOG + REM + RPT + DRV)** | **≈ 28,400** | **≈ 6,540** |
+| **Combined** | **≈ 37,960** | **≈ 6,620** |
+
+At 100 DAU the sharing increment is ≈ 1,900 reads and ≈ 16 writes
+(combined ≈ 7,550 / ≈ 1,340).
+
+## Verdict
+
+**Sharing increment: bounded by design, but the combined projection FAILS
+reads.** ≈9,560 reads/day at 500 DAU — the dominant term is the share sync's
+`uploaderUids` worklist read per run, already held down by the SD-08
+15-minute throttle and the 200-receipt cap. Combined reads ≈37,960
+(~152% of the DR-20 share, ~76% of the actual 50,000-read Spark quota);
+writes ≈6,620 (~66% of the share) stay inside.
+
+The breach compounds the carry-over recorded under RPT-01/DRV-02 — the
+pre-existing model was at ~114% of the share before Sharing. Per SHR-03
+AC #3, SHR-14 is recorded as implemented to the cheapest available design
+(cache-first everywhere else; sync is native-only, member-only, throttled)
+with the flag carried forward.
+
+**Levers if reads must drop:** skip the worklist query when the vehicle's
+`updatedAt` is unchanged since the last run (entries churn bumps it);
+persist a per-vehicle "nothing changed" marker after a clean run and skip
+the next query until the vehicle watch reports a delta; or push the run
+interval above 15 minutes. The first is a one-field comparison and is the
+recommended follow-up — it would cut the dominant term when nothing moved.
+
+Gate G2 for tab 6 does not pass cleanly at this model: SHR-14 is recorded
+as implemented with the marginal breach flagged for re-check on real
+telemetry.

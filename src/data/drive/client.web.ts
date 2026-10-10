@@ -92,6 +92,9 @@ export function createWebDriveClient(fetchImpl: typeof fetch = fetch): DriveClie
       downloadBlob: () => missing(),
       thumbnailFor: () => missing(),
       deleteFile: () => missing(),
+      addReaderPermission: () => missing(),
+      listPermissions: () => missing(),
+      removePermission: () => missing(),
     };
   }
 
@@ -230,6 +233,10 @@ export function createWebDriveClient(fetchImpl: typeof fetch = fetch): DriveClie
     },
 
     deleteFile: (id) => api.deleteFile(id),
+
+    addReaderPermission: (fileId, email) => api.addReaderPermission(fileId, email),
+    listPermissions: (fileId) => api.listPermissions(fileId),
+    removePermission: (fileId, permissionId) => api.removePermission(fileId, permissionId),
   };
 }
 

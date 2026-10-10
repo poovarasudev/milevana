@@ -12,17 +12,20 @@ import { Button, Card, Header, Icon, Row, T } from '../src/ui/kit';
 import { Notices } from '../src/ui/Notices';
 import { useTheme } from '../src/ui/theme';
 import { VehicleGlyph } from '../src/ui/VehicleGlyph';
+import { MemberShareBlock, OwnerShareBlock } from '../src/ui/VehicleShare';
 
 function VehiclesScreen() {
   const th = useTheme();
   const settings = useSettings();
   const vehicles = useAppStore((s) => s.vehicles);
+  const uid = useAppStore((s) => s.user?.uid);
   const deleteFailedIds = useAppStore((s) => s.deleteFailedIds);
   const active = vehicles.filter((v) => !v.archived);
   const archived = vehicles.filter((v) => v.archived);
 
   const renderRow = (v: (typeof vehicles)[number]) => {
     const failed = deleteFailedIds.includes(v.id);
+    const shared = v.memberIds.length > 1;
     return (
       <View key={v.id}>
         <Row
@@ -31,7 +34,17 @@ function VehiclesScreen() {
           title={v.name}
           sub={`${t(`vehicleTypes.${v.type}`)} · ${displayOdometer(v, settings)}${v.archived ? ` · ${t('vehicles.archived')}` : ''}`}
           onPress={() => router.push({ pathname: '/vehicle/[id]', params: { id: v.id } })}
-          right={<Icon name="chevron-right" color={th.muted} />}
+          right={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {shared ? (
+                <>
+                  <Icon name="account-multiple-outline" color={th.muted} size={18} />
+                  <T size={13} weight="semi" color={th.muted}>{v.memberIds.length}</T>
+                </>
+              ) : null}
+              <Icon name="chevron-right" color={th.muted} />
+            </View>
+          }
         />
         {failed ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 58, paddingBottom: 8 }}>
@@ -39,6 +52,8 @@ function VehiclesScreen() {
             <T size={12} weight="semi" color={th.danger} style={{ flex: 1 }}>{t('vehicles.deleteBadge')}</T>
           </View>
         ) : null}
+        {uid && v.ownerId !== uid ? <MemberShareBlock vehicle={v} /> : null}
+        {uid && v.ownerId === uid && !v.archived ? <OwnerShareBlock vehicle={v} /> : null}
       </View>
     );
   };

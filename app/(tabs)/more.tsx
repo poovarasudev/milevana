@@ -15,7 +15,7 @@ const ITEMS: { labelKey: string; icon: IconName; href?: string; soon?: boolean }
   { labelKey: 'more.items.reminders', icon: 'bell-outline', href: '/reminders' },
   { labelKey: 'more.items.checklists', icon: 'clipboard-check-outline', soon: true },
   { labelKey: 'more.items.backup', icon: 'upload-outline', href: '/backup-export' },
-  { labelKey: 'more.items.join', icon: 'account-plus-outline', soon: true },
+  { labelKey: 'more.items.join', icon: 'account-plus-outline', href: '/join' },
   { labelKey: 'more.items.settings', icon: 'cog-outline', href: '/settings' },
   { labelKey: 'more.items.account', icon: 'account-circle-outline', href: '/account' },
   { labelKey: 'more.items.about', icon: 'shield-check-outline', href: '/about' },

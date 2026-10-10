@@ -3,8 +3,10 @@ rules_version = '2';
 // Milevana Foundation rules (FND-SEC-01/02/03).
 // Everything is denied by default and opened only as below.
 // Decisions applied: docs/requirements.md "Decisions on open questions".
-//  - Foundation ships default-deny for invites, self-join, leave, remove and
-//    ownership transfer (the Sharing sub-project adds the real rules).
+//  - Sharing (SHR-04/05, SD-01/03/05/06): invites are owner-written; a linked
+//    user joins by marking an unused invite in the same write that adds their
+//    member record; members leave themselves, owners remove others and owners
+//    transfer ownership with a role swap.
 //  - Timestamps must not be in the future, so merged and restored copies keep
 //    their original dates.
 //  - createdBy and updatedBy must equal the caller.
@@ -29,6 +31,23 @@ service cloud.firestore {
       return get(vehiclePath(vid)).data;
     }
 
+    function invitePath(code) {
+      return /databases/$(database)/documents/invites/$(code);
+    }
+
+    function inviteData(code) {
+      return get(invitePath(code)).data;
+    }
+
+    // SD-03: joining requires a linked (non-anonymous) account. Anonymous
+    // tokens carry firebase.sign_in_provider == 'anonymous'; older/emulated
+    // tokens without the claim are treated as linked.
+    function anonymous() {
+      return request.auth.token.firebase is map
+        && request.auth.token.firebase.keys().hasAny(['sign_in_provider'])
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
     function notInFuture(ts) {
       return ts is timestamp && ts <= request.time;
     }
@@ -46,8 +65,8 @@ service cloud.firestore {
     // ---------- vehicles ----------
     function memberMapOk(d) {
       // members keys must equal memberIds, the owner must be a member with
-      // role 'owner'. Membership can never change in Foundation, so the only
-      // map ever validated here is the sole-owner create shape.
+      // role 'owner'. Membership changes come only through the Sharing write
+      // paths below (join, leave, remove, transfer).
       return d.memberIds is list && d.memberIds.size() >= 1 && d.memberIds.size() <= 10
         && d.members is map
         && d.members.keys().toSet() == d.memberIds.toSet()
@@ -115,6 +134,99 @@ service cloud.firestore {
         && notInFuture(request.resource.data.updatedAt);
     }
 
+    // SHR-04/SD-03: the joiner adds exactly their own uid to memberIds and a
+    // matching member record (name + email + joinedAt + inviteCode) to members,
+    // while the same batch marks the invite used. They cannot read the vehicle
+    // before joining, so the invite does the validation: it must exist, be
+    // unused, unexpired and point at THIS vehicle, and its post-write state
+    // must record the joiner (getAfter). The vehicle must not be archived and
+    // must stay under the 10-member cap.
+    function joinsWithInvite(vid) {
+      let post = request.resource.data;
+      let newIds = post.memberIds.toSet().difference(resource.data.memberIds.toSet());
+      return post.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members', 'updatedAt'])
+        && !resource.data.archived
+        && newIds.size() == 1
+        && newIds.hasAny([uid()])
+        && post.memberIds.size() == resource.data.memberIds.size() + 1
+        && post.memberIds.size() <= 10
+        && !resource.data.members.keys().hasAny([uid()])
+        && post.members.diff(resource.data.members).affectedKeys().hasOnly([uid()])
+        && post.members[uid()].role == 'member'
+        && post.members[uid()].name is string
+        && post.members[uid()].name.size() >= 1
+        && post.members[uid()].name.size() <= 60
+        && post.members[uid()].email is string
+        && post.members[uid()].email.size() >= 1
+        && post.members[uid()].email.size() <= 320
+        && notInFuture(post.members[uid()].joinedAt)
+        && post.members[uid()].inviteCode is string
+        && post.members[uid()].inviteCode.size() >= 1
+        && post.members[uid()].inviteCode.size() <= 16
+        && !anonymous()
+        && exists(invitePath(post.members[uid()].inviteCode))
+        && !inviteData(post.members[uid()].inviteCode).keys().hasAny(['usedBy'])
+        && inviteData(post.members[uid()].inviteCode).vehicleId == vid
+        && inviteData(post.members[uid()].inviteCode).expiresAt > request.time
+        && getAfter(invitePath(post.members[uid()].inviteCode)).data.keys().hasAny(['usedBy'])
+        && getAfter(invitePath(post.members[uid()].inviteCode)).data.usedBy == uid()
+        && notInFuture(getAfter(invitePath(post.members[uid()].inviteCode)).data.usedAt)
+        && validVehicle(post);
+    }
+
+    // SHR-05/SD-06/07: a member removes exactly their own uid from memberIds
+    // and members. The owner cannot leave — they must transfer or delete.
+    function memberLeaves() {
+      let post = request.resource.data;
+      let gone = resource.data.memberIds.toSet().difference(post.memberIds.toSet());
+      return resource.data.ownerId != uid()
+        && post.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members', 'updatedAt'])
+        && gone.size() == 1
+        && gone.hasAny([uid()])
+        && post.memberIds.size() == resource.data.memberIds.size() - 1
+        && post.members.diff(resource.data.members).affectedKeys().hasOnly([uid()])
+        && !post.members.keys().hasAny([uid()])
+        && validVehicle(post);
+    }
+
+    // SHR-05/SD-06/07: the owner removes exactly one other member — never
+    // themselves and never more than one uid at a time.
+    function ownerRemovesMember() {
+      let post = request.resource.data;
+      let gone = resource.data.memberIds.toSet().difference(post.memberIds.toSet());
+      return resource.data.ownerId == uid()
+        && post.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members', 'updatedAt'])
+        && gone.size() == 1
+        && !gone.hasAny([uid()])
+        && post.memberIds.size() == resource.data.memberIds.size() - 1
+        // memberMapOk keeps members keys == memberIds, so the post map cannot
+        // retain the removed uid; the diff must touch exactly that one key.
+        && post.members.diff(resource.data.members).affectedKeys() == gone
+        && validVehicle(post);
+    }
+
+    // SHR-05/SD-06/07: ownership moves to an existing member in one write —
+    // ownerId flips and exactly the two member records swap roles; memberIds
+    // and every other member record are untouched.
+    function ownerTransfers() {
+      let post = request.resource.data;
+      return resource.data.ownerId == uid()
+        && post.diff(resource.data).affectedKeys().hasOnly(['ownerId', 'members', 'updatedAt'])
+        && post.ownerId in resource.data.memberIds
+        && post.ownerId != uid()
+        && post.members.diff(resource.data.members).affectedKeys()
+            .hasAll([uid(), post.ownerId])
+        && post.members.diff(resource.data.members).affectedKeys()
+            .hasOnly([uid(), post.ownerId])
+        && post.members[uid()].role == 'member'
+        && post.members[post.ownerId].role == 'owner'
+        && post.members[uid()].diff(resource.data.members[uid()])
+            .affectedKeys().hasOnly(['role'])
+        && post.members[post.ownerId].diff(resource.data.members[post.ownerId])
+            .affectedKeys().hasOnly(['role'])
+        && validVehicle(post);
+    }
+
     match /vehicles/{vid} {
       allow read: if signedIn() && uid() in resource.data.memberIds;
 
@@ -130,6 +242,10 @@ service cloud.firestore {
           && validVehicle(request.resource.data))
         || (uid() in resource.data.memberIds && memberOdometerUpdate())
         || (ownerFillsMemberProfile() && validVehicle(request.resource.data))
+        || memberLeaves()
+        || ownerRemovesMember()
+        || ownerTransfers()
+        || joinsWithInvite(vid)
       );
 
       allow delete: if signedIn() && resource.data.ownerId == uid();
@@ -296,9 +412,74 @@ service cloud.firestore {
       }
     }
 
-    // ---------- invites: fully denied in Foundation, defined by Sharing ----------
+    // ---------- invites (SHR-04, SD-01/03/05) ----------
     match /invites/{code} {
-      allow read, write: if false;
+      // SD-01: any signed-in user (anonymous included) may GET an invite by
+      // its exact code so the join screen can show names before linking —
+      // provided the vehicle still exists; a deleted vehicle's invite reads
+      // fail so the join screen can say "This vehicle no longer exists".
+      // Listing is owner-only — a query that touches another owner's invites
+      // is denied, so codes cannot be enumerated.
+      allow get: if signedIn()
+        && (resource == null
+            || (resource.data.vehicleId is string
+                && exists(vehiclePath(resource.data.vehicleId))));
+      allow list: if signedIn() && resource.data.ownerId == uid();
+
+      // Only the vehicle's owner mints invites. The code is the document id
+      // (8 chars, checked by the app), expires exactly 7 days after creation
+      // and is single-use. Codes cannot be overwritten (set() on an existing
+      // doc is an update, not a create).
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+            'vehicleId', 'vehicleName', 'ownerId', 'ownerName',
+            'createdBy', 'createdAt', 'expiresAt', 'schemaVersion'])
+        && request.resource.data.vehicleId is string
+        && request.resource.data.vehicleId.size() > 0
+        && request.resource.data.vehicleName is string
+        && request.resource.data.vehicleName.size() >= 1
+        && request.resource.data.vehicleName.size() <= 60
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 60
+        && request.resource.data.createdBy == uid()
+        && notInFuture(request.resource.data.createdAt)
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt
+            == request.resource.data.createdAt + duration.value(7, 'd')
+        && (!request.resource.data.keys().hasAny(['schemaVersion'])
+            || request.resource.data.schemaVersion is int)
+        && exists(vehiclePath(request.resource.data.vehicleId))
+        && vehicleData(request.resource.data.vehicleId).ownerId == uid()
+        && !vehicleData(request.resource.data.vehicleId).archived;
+
+      // Two update shapes: (a) the join mark — an unused, unexpired invite
+      // gains exactly usedBy/usedAt, and the same write adds the caller to
+      // the invite's vehicle with inviteCode == this code (prevents replay
+      // and binds both writes together — SD-02/03/06); joining needs a
+      // linked account and the vehicle must exist and not be archived.
+      // (b) the owner mirrors the vehicle's archived flag onto the invite so
+      // a joiner sees "vehicle archived" — they cannot read the vehicle.
+      allow update: if signedIn()
+        && ((!anonymous()
+            && !resource.data.keys().hasAny(['usedBy', 'usedAt'])
+            && resource.data.expiresAt is timestamp
+            && resource.data.expiresAt > request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy', 'usedAt'])
+            && request.resource.data.usedBy == uid()
+            && request.resource.data.usedAt is timestamp
+            && notInFuture(request.resource.data.usedAt)
+            && exists(vehiclePath(resource.data.vehicleId))
+            && !vehicleData(resource.data.vehicleId).archived
+            && getAfter(vehiclePath(resource.data.vehicleId)).data.memberIds.hasAny([uid()])
+            && getAfter(vehiclePath(resource.data.vehicleId)).data.members[uid()].role == 'member'
+            && getAfter(vehiclePath(resource.data.vehicleId)).data.members[uid()].inviteCode == code)
+          || (resource.data.ownerId == uid()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vehicleArchived'])
+            && request.resource.data.vehicleArchived is bool));
+
+      // The owner cancels a pending invite by deleting it (SHR-04 #9).
+      allow delete: if signedIn() && resource.data.ownerId == uid();
     }
   }
 }

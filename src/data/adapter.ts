@@ -118,6 +118,22 @@ export type Unsubscribe = () => void;
 export const SERVER_TIMESTAMP = Object.freeze({ __milevanaServerTimestamp: true as const });
 export type ServerTimestampMarker = typeof SERVER_TIMESTAMP;
 
+/**
+ * Marker written into UPDATE data to append values to an array field without
+ * reading it first (Firestore arrayUnion). Needed by the join write: the
+ * joiner cannot read the vehicle, so they cannot send the full memberIds list.
+ */
+export interface ArrayUnionMarker { __milevanaArrayUnion: unknown[] }
+export function arrayUnion(values: unknown[]): ArrayUnionMarker {
+  return { __milevanaArrayUnion: values };
+}
+export function isArrayUnion(v: unknown): v is ArrayUnionMarker {
+  return (
+    typeof v === 'object' && v !== null &&
+    Array.isArray((v as { __milevanaArrayUnion?: unknown }).__milevanaArrayUnion)
+  );
+}
+
 export interface FirebaseAdapter {
   readonly platform: 'native' | 'web';
   /**

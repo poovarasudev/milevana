@@ -3,6 +3,20 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "hosting": {
+    "public": "../dist",
+    "ignore": ["firebase.json", "**/.DS_Store", "**/.*.map", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [{ "key": "Content-Type", "value": "application/json" }]
+      }
+    ],
+    "rewrites": [
+      { "source": "/privacy", "destination": "/privacy.html" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  },
   "emulators": {
     "firestore": { "port": 8080 },
     "ui": { "enabled": false },

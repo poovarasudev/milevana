@@ -121,6 +121,8 @@ interface AppState {
   receiptQueuePending: number;
   /** True when a queued upload last failed with Drive 'storage-full'. */
   receiptStorageFull: boolean;
+  /** Receipt share sync is running — the "Sharing receipts…" chip (SD-08). */
+  shareSyncRunning: boolean;
 
   // patch helper — actions live in the feature modules
   set: (patch: Partial<AppState>) => void;
@@ -175,6 +177,7 @@ const initial: Omit<AppState, 'set'> = {
   deleteFailedIds: [],
   receiptQueuePending: 0,
   receiptStorageFull: false,
+  shareSyncRunning: false,
 };
 
 export const useAppStore = create<AppState>((set) => ({

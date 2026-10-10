@@ -63,10 +63,29 @@ export async function changeVehicleUnits(
 
 export async function archiveVehicle(id: string): Promise<void> {
   await guardedWrite(getRepos().vehicles.archive(id));
+  await mirrorInviteArchivedFlag(id, true);
 }
 
 export async function unarchiveVehicle(id: string): Promise<void> {
   await guardedWrite(getRepos().vehicles.unarchive(id));
+  await mirrorInviteArchivedFlag(id, false);
+}
+
+/**
+ * SHR-08: mark this vehicle's pending invites so joiners see "vehicle
+ * archived" instead of an opaque denial. Best-effort — a failed flag leaves
+ * the invite usable-looking but the join write is still denied by rules.
+ */
+async function mirrorInviteArchivedFlag(vehicleId: string, archived: boolean): Promise<void> {
+  try {
+    const invites = await getRepos().invites.listForVehicle(vehicleId);
+    for (const inv of invites) {
+      if (inv.usedBy || inv.vehicleArchived === archived) continue;
+      await getRepos().invites.setArchivedFlag(inv.code, archived);
+    }
+  } catch (e) {
+    reportNonFatal(e, { stage: 'invite-archive-flag', id: vehicleId });
+  }
 }
 
 /** Whether the typed confirmation matches the vehicle name (DR-14: trim + case). */

@@ -13,6 +13,12 @@ export const inviteDocSchema = z.object({
   expiresAt: timestampSchema,
   usedBy: z.string().min(1).optional(),
   usedAt: timestampSchema.optional(),
+  /**
+   * The owner mirrors the vehicle's archived flag onto pending invites so a
+   * joiner — who cannot read the vehicle — sees "vehicle archived" rather
+   * than an opaque join failure (SHR-08; vehicle.archived remains the rule).
+   */
+  vehicleArchived: z.boolean().optional(),
   schemaVersion: z.literal(SCHEMA_VERSION).optional(),
 });
 export type InviteDoc = z.infer<typeof inviteDocSchema>;

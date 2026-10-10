@@ -13,6 +13,8 @@ import type { AttachmentDoc } from '../../data/schema/entry';
 import type { EntryRecord } from '../../data/repos/entryRepo';
 import {
   MAX_ATTACHMENTS,
+  memberReceiptState,
+  openInDrive,
   openReceipt,
   receiptSource,
   type PendingReceipt,
@@ -163,9 +165,59 @@ function PendingRow({ p, onRemove }: { p: PendingReceipt; onRemove: () => void }
   );
 }
 
-export function AttachmentsSection({ uid, vehicleId, entry, attachments, pendings, readOnly, error, onAdd, onRemoveExisting, onRemovePending, onRetry }: {
+/**
+ * Another member's attachment (SHR-15, SD-09): never rendered in-app. When
+ * the uploader's share sync has granted Drive access it shows "Open in
+ * Drive" (disabled offline); before that "Shared once <name> opens the
+ * app"; a departed uploader the caller never had access to shows "No longer
+ * available".
+ */
+function MemberRow({ uid, vehicle, att }: {
+  uid: string;
+  vehicle: { memberIds: string[]; members?: Record<string, { name?: string }> };
+  att: AttachmentDoc;
+}) {
+  const th = useTheme();
+  const online = useOnline();
+  const state = memberReceiptState(att, uid, vehicle);
+  const uploaderName = vehicle.members?.[att.ownerUid]?.name;
+  const openable = state === 'openable' && online;
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
+      <Pressable
+        accessibilityRole="button"
+        disabled={!openable}
+        onPress={() => void openInDrive(att)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}
+      >
+        <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: th.divider, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={att.mimeType === 'application/pdf' ? 'file-pdf-box' : 'image-outline'} color={th.muted} size={20} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <T weight="semi">{uploaderName ? `${attLabel(att)} · ${uploaderName}` : attLabel(att)}</T>
+          <T
+            size={12}
+            color={state === 'gone' ? th.danger : openable ? th.primary : th.muted}
+          >
+            {state === 'openable'
+              ? online ? t('receipts.openInDrive') : t('receipts.sharedOffline')
+              : state === 'pending'
+                ? t('receipts.pendingShare', { name: uploaderName ?? t('receipts.aMember') })
+                : t('receipts.noLongerAvailable')}
+          </T>
+        </View>
+        {openable ? <Icon name="open-in-new" color={th.primary} size={18} /> : null}
+      </Pressable>
+    </View>
+  );
+}
+
+export function AttachmentsSection({ uid, vehicleId, vehicle, entry, attachments, pendings, readOnly, error, onAdd, onRemoveExisting, onRemovePending, onRetry }: {
   uid: string;
   vehicleId: string;
+  /** Needed to classify other members' receipts (SHR-15); omit in tests. */
+  vehicle?: { memberIds: string[]; members?: Record<string, { name?: string }> };
   entry?: EntryRecord;
   attachments: AttachmentDoc[];
   pendings: PendingReceipt[];
@@ -187,16 +239,20 @@ export function AttachmentsSection({ uid, vehicleId, entry, attachments, pending
       <Label>{t('receipts.title')}</Label>
       <View style={{ borderWidth: 1, borderColor: th.divider, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: th.card }}>
         {entry ? attachments.map((att) => (
-          <SavedRow
-            key={att.id}
-            uid={uid}
-            vehicleId={vehicleId}
-            entry={entry}
-            att={att}
-            readOnly={readOnly}
-            onRemove={() => onRemoveExisting(att)}
-            onRetry={() => onRetry(att)}
-          />
+          vehicle && memberReceiptState(att, uid, vehicle) !== 'own' ? (
+            <MemberRow key={att.id} uid={uid} vehicle={vehicle} att={att} />
+          ) : (
+            <SavedRow
+              key={att.id}
+              uid={uid}
+              vehicleId={vehicleId}
+              entry={entry}
+              att={att}
+              readOnly={readOnly}
+              onRemove={() => onRemoveExisting(att)}
+              onRetry={() => onRetry(att)}
+            />
+          )
         )) : null}
         {pendings.map((p) => (
           <PendingRow key={p.id} p={p} onRemove={() => onRemovePending(p)} />

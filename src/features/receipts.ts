@@ -5,6 +5,7 @@
 // entry may only be saved once every pending receipt is 'uploaded' (ED-14).
 // At most 5 attachments per entry (schema cap, ED-07).
 
+import { Linking } from 'react-native';
 import { adapter, getRepos } from './runtime';
 import { drive, DriveError } from '../data/drive/client';
 import { ensureVehicleReceiptFolder, receiptFileName } from '../data/drive/folders';
@@ -261,4 +262,50 @@ async function markMissing(vehicleId: string, entry: EntryDoc & { id?: string },
   await getRepos()
     .entries.update(vehicleId, entry.id, { attachments: atts })
     .catch(() => undefined);
+}
+
+// --- other members' receipts (SHR-15, SD-09) ---------------------------------
+
+/**
+ * How the caller relates to an attachment (SHR-15). Under `drive.file` the
+ * app can only open files it created, so another member's uploaded receipt
+ * never renders in-app: 'openable' → "Open in Drive", 'pending' → "Shared
+ * once <name> opens the app", 'gone' → "No longer available" (the uploader
+ * left and the caller never had access).
+ */
+export type MemberReceiptState = 'own' | 'openable' | 'pending' | 'gone';
+
+export function memberReceiptState(
+  att: AttachmentDoc,
+  uid: string,
+  vehicle: { memberIds: string[] },
+): MemberReceiptState {
+  if (att.ownerUid === uid) return 'own';
+  if (att.sharedWithUids.includes(uid)) {
+    return att.status === 'uploaded' && att.driveFileId ? 'openable' : 'gone';
+  }
+  if (!vehicle.memberIds.includes(att.ownerUid)) return 'gone';
+  return 'pending';
+}
+
+/** The Drive web view for a shared file — Drive grants the access. */
+export function driveViewUrl(att: AttachmentDoc): string | null {
+  return att.driveFileId ? `https://drive.google.com/file/d/${att.driveFileId}/view` : null;
+}
+
+/**
+ * "Open in Drive" for a receipt another member shared with the caller — the
+ * system browser / Drive app handles auth. Web opens a new tab (SD-11).
+ * Resolves false when the link cannot be opened.
+ */
+export async function openInDrive(att: AttachmentDoc): Promise<boolean> {
+  const url = driveViewUrl(att);
+  if (!url) return false;
+  try {
+    // Linking.openURL resolves to window.open on web (SD-11).
+    await Linking.openURL(url);
+    return true;
+  } catch {
+    return false;
+  }
 }

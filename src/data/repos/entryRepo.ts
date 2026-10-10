@@ -210,6 +210,18 @@ export class EntryRepo extends RepoBase {
     return total;
   }
 
+  /**
+   * Entries the caller uploaded at least one attachment to — the receipt
+   * share sync's worklist (OQ-56). Single-field array-contains, no index.
+   */
+  async listUploadedBy(vehicleId: string, uid: string): Promise<EntryRecord[]> {
+    const snap = await this.adapter.getDocs({
+      collection: `vehicles/${vehicleId}/entries`,
+      clauses: [{ kind: 'where', field: 'uploaderUids', op: 'array-contains', value: uid }],
+    });
+    return this.parseWithIds(vehicleId, snap);
+  }
+
   /** Ids of entries still carrying the anonymous 'Me' placeholder (DR-02). */
   async listPlaceholderAuthored(vehicleId: string): Promise<string[]> {
     const snap = await this.adapter.getDocs({

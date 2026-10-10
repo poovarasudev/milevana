@@ -209,6 +209,86 @@ export class VehicleRepo extends RepoBase {
   }
 
   /**
+   * SHR-05/SD-06: a member removes exactly their own uid from memberIds and
+   * members. The owner cannot leave — they must transfer or delete (the
+   * rules deny owner self-removal).
+   */
+  async leave(vehicleId: string): Promise<void> {
+    const uid = this.callerUid();
+    const cur = await this.mustGet(vehicleId);
+    if (cur.ownerId === uid) {
+      throw new RepoError('invalid-argument', 'the owner must transfer ownership or delete the vehicle');
+    }
+    if (!cur.memberIds.includes(uid)) {
+      throw new RepoError('permission-denied', 'not a member');
+    }
+    const members = { ...cur.members };
+    delete members[uid];
+    await this.finishWrite(
+      this.adapter.updateDoc(`vehicles/${vehicleId}`, {
+        memberIds: cur.memberIds.filter((m) => m !== uid),
+        members,
+        updatedAt: this.adapter.now(),
+      }),
+    );
+  }
+
+  /** SHR-05/SD-06: the owner removes exactly one other member. */
+  async removeMember(vehicleId: string, memberUid: string): Promise<void> {
+    const uid = this.callerUid();
+    const cur = await this.mustGet(vehicleId);
+    if (cur.ownerId !== uid) {
+      throw new RepoError('permission-denied', 'only the owner removes members');
+    }
+    if (memberUid === uid) {
+      throw new RepoError('invalid-argument', 'the owner cannot remove themselves');
+    }
+    if (!cur.memberIds.includes(memberUid)) {
+      throw new RepoError('not-found', memberUid);
+    }
+    const members = { ...cur.members };
+    delete members[memberUid];
+    await this.finishWrite(
+      this.adapter.updateDoc(`vehicles/${vehicleId}`, {
+        memberIds: cur.memberIds.filter((m) => m !== memberUid),
+        members,
+        updatedAt: this.adapter.now(),
+      }),
+    );
+  }
+
+  /**
+   * SHR-05/SD-06/07: ownership moves to an existing member in one write —
+   * ownerId flips and the two member records swap roles; no acceptance step.
+   */
+  async transferOwnership(vehicleId: string, newOwnerUid: string): Promise<void> {
+    const uid = this.callerUid();
+    const cur = await this.mustGet(vehicleId);
+    if (cur.ownerId !== uid) {
+      throw new RepoError('permission-denied', 'only the owner transfers ownership');
+    }
+    if (newOwnerUid === uid) {
+      throw new RepoError('invalid-argument', 'already the owner');
+    }
+    const mine = cur.members[uid];
+    const target = cur.members[newOwnerUid];
+    if (!mine || !target || !cur.memberIds.includes(newOwnerUid)) {
+      throw new RepoError('not-found', newOwnerUid);
+    }
+    await this.finishWrite(
+      this.adapter.updateDoc(`vehicles/${vehicleId}`, {
+        ownerId: newOwnerUid,
+        members: {
+          ...cur.members,
+          [uid]: { ...mine, role: 'member' },
+          [newOwnerUid]: { ...target, role: 'owner' },
+        },
+        updatedAt: this.adapter.now(),
+      }),
+    );
+  }
+
+  /**
    * Member-scoped odometer write. Rules allow any member to touch exactly
    * {lastOdometer, lastOdometerAt, updatedAt}; entryRepo drives this.
    */

@@ -16,6 +16,7 @@ import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
 import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
 import { maybeRunAutomaticBackup } from './backup';
+import { installReceiptShareSync } from './receiptShare';
 import { runPendingDriveDeletes } from './driveDeletes';
 import { localFiles } from '../data/localFiles';
 import { stopReportEntryWatches } from './reportData';
@@ -361,6 +362,9 @@ function startWatchers(user: AuthUser): void {
   void sweepOrphanedStaging(uid);
   void runPendingDriveDeletes(uid);
   void maybeRunAutomaticBackup(uid);
+  // SHR-14: receipt share sync — app open + foreground, throttled per
+  // vehicle; no-ops on web, offline, anonymous or without a Drive grant.
+  sessionStops.push(installReceiptShareSync(uid));
 
   if (user.isAnonymous) {
     // populated once the vehicle list lands (handleVehicleList → syncEntryWatch)

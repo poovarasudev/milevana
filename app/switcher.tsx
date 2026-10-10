@@ -44,7 +44,17 @@ export default function Switcher() {
               tint={p.color}
               soft={p.soft}
               onPress={() => { void selectVehicle(v.id); router.back(); }}
-              right={v.id === selected && !reportsAll ? <Icon name="check-circle" color={th.primary} /> : undefined}
+              right={
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  {v.memberIds.length > 1 ? (
+                    <>
+                      <Icon name="account-multiple-outline" color={th.muted} size={18} />
+                      <T size={13} weight="semi" color={th.muted}>{v.memberIds.length}</T>
+                    </>
+                  ) : null}
+                  {v.id === selected && !reportsAll ? <Icon name="check-circle" color={th.primary} /> : null}
+                </View>
+              }
             />
           );
         })}

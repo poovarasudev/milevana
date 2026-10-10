@@ -141,9 +141,9 @@ describe('rules matrix (smoke subset)', () => {
     await assertSucceeds(deleteDoc(doc(db('alice'), 'vehicles', 'v1', 'checklistTemplates', 't3')));
   });
 
-  test('invites: denied in Foundation', async () => {
-    await assertFails(setDoc(doc(db('alice'), 'invites', 'K7QX-M2PA'), { vehicleId: 'v1' }));
-    await assertFails(getDoc(doc(db('alice'), 'invites', 'K7QX-M2PA')));
+  test('invites: exact-code read is open to signed-in users (SHR-04)', async () => {
+    await assertSucceeds(getDoc(doc(db('alice'), 'invites', 'K7QX-M2PA')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'invites', 'K7QX-M2PA')));
   });
 });
 

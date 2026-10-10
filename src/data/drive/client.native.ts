@@ -108,6 +108,10 @@ export function createNativeDriveClient(fetchImpl: typeof fetch = fetch): DriveC
     },
 
     deleteFile: (id) => api.deleteFile(id),
+
+    addReaderPermission: (fileId, email) => api.addReaderPermission(fileId, email),
+    listPermissions: (fileId) => api.listPermissions(fileId),
+    removePermission: (fileId, permissionId) => api.removePermission(fileId, permissionId),
   };
 }
 

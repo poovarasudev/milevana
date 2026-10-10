@@ -23,6 +23,7 @@ export function Notices() {
   const accessLost = useAppStore((s) => s.accessLost);
   const ownerError = useAppStore((s) => s.ownerError);
   const skipped = useAppStore((s) => s.skippedDocs);
+  const shareSync = useAppStore((s) => s.shareSyncRunning);
   const web = isWeb();
 
   // group skipped docs by kind for "2 entries couldn't be shown"
@@ -58,6 +59,7 @@ export function Notices() {
           }}
         />
       ) : null}
+      {shareSync ? <Banner icon="sync" tone="info" text={t('receipts.sharing')} /> : null}
       {[...byKind.entries()].map(([kind, count]) => (
         <Banner
           key={kind}

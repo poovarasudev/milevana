@@ -147,6 +147,7 @@ export default function EntryScreen() {
             <AttachmentsSection
               uid={uid}
               vehicleId={vehicle.id}
+              vehicle={vehicle}
               entry={entry}
               attachments={keptAtts}
               pendings={pendings}

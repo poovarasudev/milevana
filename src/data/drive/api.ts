@@ -3,7 +3,7 @@
 // metadata, downloads, deletes and error normalisation — is identical on
 // Android and web, and fully testable in Jest with a fake fetch.
 
-import { DRIVE_FOLDER_MIME, DriveError, DriveFileMeta } from './client';
+import { DRIVE_FOLDER_MIME, DriveError, DriveFileMeta, DrivePermission } from './client';
 
 const FILES = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
@@ -211,6 +211,59 @@ export class DriveApi {
   async deleteFile(fileId: string): Promise<void> {
     try {
       await this.req(`${FILES}/${encodeURIComponent(fileId)}`, { method: 'DELETE' });
+    } catch (e) {
+      if (e instanceof DriveError && e.code === 'not-found') return;
+      throw e;
+    }
+  }
+
+  // --- permissions (SHR-14) -------------------------------------------------
+
+  /** Reader grant by email, `sendNotificationEmail=false` (SD-08). */
+  async addReaderPermission(fileId: string, email: string): Promise<void> {
+    await this.req(
+      `${FILES}/${encodeURIComponent(fileId)}/permissions?sendNotificationEmail=false`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'user', role: 'reader', emailAddress: email }),
+      },
+    );
+  }
+
+  async listPermissions(fileId: string): Promise<DrivePermission[]> {
+    const out: DrivePermission[] = [];
+    let pageToken: string | undefined;
+    do {
+      const url =
+        `${FILES}/${encodeURIComponent(fileId)}/permissions` +
+        `?pageSize=100&fields=${encodeURIComponent('permissions(id,type,role,emailAddress),nextPageToken')}` +
+        (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '');
+      const res = await this.req(url);
+      const body = (await res.json()) as {
+        permissions?: Record<string, unknown>[];
+        nextPageToken?: string;
+      };
+      for (const p of body.permissions ?? []) {
+        out.push({
+          id: p.id as string,
+          type: (p.type as string) ?? '',
+          role: (p.role as string) ?? '',
+          emailAddress: p.emailAddress as string | undefined,
+        });
+      }
+      pageToken = body.nextPageToken;
+    } while (pageToken);
+    return out;
+  }
+
+  /** Remove a permission; an already-gone one resolves cleanly. */
+  async removePermission(fileId: string, permissionId: string): Promise<void> {
+    try {
+      await this.req(
+        `${FILES}/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`,
+        { method: 'DELETE' },
+      );
     } catch (e) {
       if (e instanceof DriveError && e.code === 'not-found') return;
       throw e;

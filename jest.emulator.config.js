@@ -5,6 +5,11 @@
 // @firebase/rules-unit-testing behave exactly as they do in the web adapter.
 module.exports = {
   testEnvironment: 'node',
+  // One worker: every suite shares the same emulator database, and each
+  // beforeEach calls clearFirestore() — parallel workers would wipe each
+  // other's fixtures mid-test. The firebase/rules suites are --runInBand
+  // for the same reason.
+  maxWorkers: 1,
   testMatch: ['**/*.emulator.test.[tj]s?(x)'],
   testPathIgnorePatterns: ['/node_modules/', '/firebase/tests/'],
   transform: {

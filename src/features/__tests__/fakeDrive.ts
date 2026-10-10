@@ -3,7 +3,7 @@
 // error injection per call kind.
 
 import type {
-  DriveClient, DriveFileMeta, DriveMediaSource, DriveUploadMeta,
+  DriveClient, DriveFileMeta, DriveMediaSource, DrivePermission, DriveUploadMeta,
 } from '../../data/drive/client';
 import { DRIVE_FOLDER_MIME, DriveError } from '../../data/drive/client';
 
@@ -22,9 +22,13 @@ export class FakeDriveClient implements DriveClient {
   private seq = 0;
   files = new Map<string, StoredFile>();
   /** Error thrown by the next eligible call (per kind), then cleared. */
-  failNext: Partial<Record<'access' | 'token' | 'folder' | 'get' | 'list' | 'upload' | 'download' | 'delete', DriveError>> = {};
+  failNext: Partial<Record<'access' | 'token' | 'folder' | 'get' | 'list' | 'upload' | 'download' | 'delete' | 'perm', DriveError>> = {};
   /** Persistent failure for a file id (delete retries etc). */
   failFileIds = new Map<string, DriveError>();
+  /** fileId → permissions. Reader grants made through addReaderPermission. */
+  permissions = new Map<string, DrivePermission[]>();
+  /** Ordered record of permission calls for assertions. */
+  permCalls: { op: 'add' | 'remove'; fileId: string; key: string }[] = [];
   accessHints: (string | undefined)[] = [];
   uploads: { name: string; parentId: string; mimeType: string }[] = [];
   deletes: string[] = [];
@@ -157,5 +161,27 @@ export class FakeDriveClient implements DriveClient {
     this.err('delete');
     this.deletes.push(fileId);
     this.files.delete(fileId);
+  }
+
+  async addReaderPermission(fileId: string, email: string): Promise<void> {
+    this.err('perm');
+    const list = this.permissions.get(fileId) ?? [];
+    if (!list.some((p) => p.emailAddress === email)) {
+      list.push({ id: `p-${fileId}-${list.length + 1}`, type: 'user', role: 'reader', emailAddress: email });
+      this.permissions.set(fileId, list);
+    }
+    this.permCalls.push({ op: 'add', fileId, key: email });
+  }
+
+  async listPermissions(fileId: string): Promise<DrivePermission[]> {
+    this.err('perm');
+    return [...(this.permissions.get(fileId) ?? [])];
+  }
+
+  async removePermission(fileId: string, permissionId: string): Promise<void> {
+    this.err('perm');
+    const list = this.permissions.get(fileId) ?? [];
+    this.permissions.set(fileId, list.filter((p) => p.id !== permissionId));
+    this.permCalls.push({ op: 'remove', fileId, key: permissionId });
   }
 }
