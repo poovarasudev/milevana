@@ -31,6 +31,8 @@ export const deletionSchema = z.object({
   status: z.string().min(1).max(60),
   startedAt: timestampSchema,
   handoffs: z.record(z.string(), z.string().min(1)),
+  // Shared vehicles the user chose to delete instead of handing off (VD-05).
+  deletes: z.array(z.string().min(1)).optional(),
   completedSteps: z.array(z.string()),
 });
 export type DeletionDoc = z.infer<typeof deletionSchema>;

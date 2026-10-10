@@ -133,6 +133,23 @@ export class RepoBase {
       },
     );
   }
+
+  /**
+   * Server-confirmed write on every platform (account deletion, REL-05): the
+   * deletion record is the resume source of truth, so each step's write must
+   * be acknowledged before the step counts as done — even on Android, where
+   * ordinary writes resolve from the durable queue.
+   */
+  protected async confirmedWrite(h: CommitHandle): Promise<void> {
+    try {
+      await h.ack;
+      notifyWrite({ ok: true });
+    } catch (e) {
+      const code = e instanceof RepoError ? e.code : 'unknown';
+      notifyWrite({ ok: false, code, journal: h.journal ?? [] });
+      throw e;
+    }
+  }
 }
 
 export interface WatchOptions {

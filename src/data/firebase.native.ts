@@ -4,8 +4,8 @@
 // credential link; non-fatal errors go to Crashlytics (FR-ERR-05).
 
 import {
-  getAuth, GoogleAuthProvider, linkWithCredential, onAuthStateChanged,
-  signInAnonymously, signInWithCredential, signOut,
+  deleteUser, getAuth, GoogleAuthProvider, linkWithCredential, onAuthStateChanged,
+  reauthenticateWithCredential, signInAnonymously, signInWithCredential, signOut,
 } from '@react-native-firebase/auth';
 import type { User } from '@react-native-firebase/auth';
 import { crash as crashlyticsCrash, getCrashlytics, recordError, setAttribute } from '@react-native-firebase/crashlytics';
@@ -310,6 +310,38 @@ export function createNativeAdapter(): FirebaseAdapter {
 
     discardRetainedCredential() {
       retainedIdToken = null;
+    },
+
+    // Recent-login re-authentication for account deletion (REL-05/06): a
+    // different Google account surfaces as 'user-mismatch' (VD-06).
+    async reauthenticateWithGoogle() {
+      const u = a.currentUser;
+      if (!u) throw new AuthError('unavailable', 'no signed-in user');
+      configureGoogle();
+      try {
+        const idToken = await googleIdToken();
+        const cred = await reauthenticateWithCredential(u, GoogleAuthProvider.credential(idToken));
+        return toAuthUser(cred.user) as AuthUser;
+      } catch (e) {
+        throw normalizeAuthError(e);
+      }
+    },
+
+    // Last deletion step (VD-04): drop the Google session first so a later
+    // sign-in can pick a different account.
+    async deleteAccount() {
+      const u = a.currentUser;
+      if (!u) throw new AuthError('unavailable', 'no signed-in user');
+      try {
+        if (googleConfigured) await GoogleSignin.signOut();
+      } catch {
+        // Google sign-out failure must not block the account delete.
+      }
+      try {
+        await deleteUser(u);
+      } catch (e) {
+        throw normalizeAuthError(e);
+      }
     },
 
     async signOut() {

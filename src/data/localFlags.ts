@@ -53,6 +53,20 @@ export const localFlags = {
     return next;
   },
 
+  // Account-deletion resume marker (VD-04/07): mirrors users/{uid}.deletion
+  // locally so a restart after the user document is already gone still resumes
+  // instead of recreating the document. Cleared on successful account delete
+  // (and by clearFor).
+  deletion: (uid: string) =>
+    localFlags.getJson<{
+      status: string;
+      startedAt?: unknown;
+      handoffs: Record<string, string>;
+      completedSteps: string[];
+    } | null>(uid, 'deletion', null),
+  saveDeletion: (uid: string, record: unknown) => localFlags.setJson(uid, 'deletion', record),
+  clearDeletion: (uid: string) => AsyncStorage.removeItem(k(uid, 'deletion')),
+
   // Merge retry bundle — one pending merge at a time, uid-agnostic (the source
   // uid is inside the bundle's documents). AsyncStorage is app-private on both
   // platforms (SC-AUTH06-07).

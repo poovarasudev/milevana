@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Milevana Privacy Policy (summary)</title>
+<title>Milevana Privacy Policy</title>
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; max-width: 40rem;
          margin: 0 auto; padding: 2rem 1.25rem 4rem; color: #1c2330;
@@ -13,37 +13,62 @@
 </style>
 </head>
 <body>
-<h1>Milevana Privacy Policy (summary)</h1>
-<p class="meta"><strong>Effective date:</strong> [date]<br>
-<strong>App:</strong> Milevana, a free, ad-free vehicle expense and maintenance tracker (Android app and web app)<br>
-<strong>Responsible party:</strong> Poovarasu Sekar, an individual developer<br>
-<strong>Contact:</strong> <a href="mailto:support@poovarasu.dev">support@poovarasu.dev</a></p>
+<h1>Milevana Privacy Policy</h1>
+<p class="meta"><strong>Effective date:</strong> [date]</p>
 
-<h2>What we collect</h2>
+<h2>1. Who we are</h2>
+<p>Milevana is a free, ad-free vehicle expense and maintenance tracker, available as an Android app and a companion web app at <a href="https://milevana.poovarasu.dev">milevana.poovarasu.dev</a>. It is provided by <strong>Poovarasu Sekar</strong>, an individual developer. Contact: <a href="mailto:support@poovarasu.dev">support@poovarasu.dev</a>.</p>
+
+<h2>2. What we collect</h2>
+<p><strong>Account information.</strong> On Android the app creates an anonymous account the first time you open it. If you link a Google account, or sign in with Google on the web, we receive your <strong>Google account name and email address</strong> and the identifier Google provides for sign-in.</p>
+<p><strong>Your vehicle data.</strong> Everything you enter: vehicles (name, type, colour, make, model, year, plate, fuel types, odometer, currency and units), fuel and charging entries, expenses, services with line items, income, trips, inspections and checklist templates, reminders, amounts, dates, odometer readings, categories and notes, and your settings (currency, units, formats, theme, language, backup frequency).</p>
+<p><strong>Member information on shared vehicles.</strong> If you share a vehicle, the vehicle record holds each member's name and Google email, role and join date, and each entry shows the name of the member who logged it.</p>
+<p><strong>Photos and documents (receipts).</strong> If you add a receipt, the app can use your camera or let you pick a photo or PDF with the system picker. The app requests the <strong>camera permission</strong> for this. Receipt files are stored in <strong>your own Google Drive</strong>, not on our servers (see section 4).</p>
+<p><strong>Crash diagnostics.</strong> We use Firebase Crashlytics to receive crash reports and non-fatal error reports. They contain <strong>document ids, error codes and app state only, and never amounts, plates, names or notes</strong>. Invite codes are removed from crash reports and your account id is not set as the Crashlytics user id. Crashlytics assigns an <strong>installation id</strong> to each installation of the app so reports can be grouped. Crash reporting is not available on the web app.</p>
+<p><strong>On your device.</strong> The Android app keeps a local copy of your data so it works offline, and keeps a few local items such as your selected vehicle and snoozed reminders. Signing out of a linked account clears them.</p>
+
+<h2>3. What we do not do</h2>
 <ul>
-<li><strong>Account.</strong> When you start the Android app, an anonymous account is created for you. If you link a Google account (or sign in with Google on the web), we receive your Google account name and email address.</li>
-<li><strong>Your vehicle data.</strong> Everything you enter: vehicles (name, type, make, model, year, plate, odometer), fuel and charging, expenses, services, income, trips, notes, and your settings.</li>
-<li><strong>Crash diagnostics.</strong> We use Firebase Crashlytics to receive anonymous crash and error reports. They contain document ids, error codes and app state. They never contain amounts, plates, names or notes. Crashlytics assigns an installation id to your app installation; we do not use your account id as the Crashlytics user id.</li>
+<li><strong>No ads.</strong> The app contains no advertising and no ad SDK.</li>
+<li><strong>We do not sell your data</strong> and we do not share it for advertising.</li>
+<li><strong>No analytics.</strong> We do not use an analytics service.</li>
+<li><strong>No location.</strong> The app does not ask for or use your location.</li>
+<li><strong>No broad media access.</strong> The app uses the system photo picker and does not request access to your whole photo library.</li>
 </ul>
 
-<h2>What we do not do</h2>
+<h2>4. Google Drive and Google user data</h2>
+<p>Backups, receipt photos and PDFs are stored in a folder named "Milevana" that the app creates in <strong>your own Google Drive</strong>. The app uses the <code>drive.file</code> permission, which lets it see only the files it creates. It cannot see your other files. You are asked for this access the first time you use a Drive feature, with a short explanation first, and you can decline: everything else keeps working. You can remove the access at any time in your Google account settings. Files in your Drive stay there, under your control, until you delete them (the app deletes a receipt file when you delete the attachment, the entry or the vehicle it belongs to, if you uploaded it).</p>
+<p><strong>Limited Use.</strong> Milevana's use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements. We use Google user data only to provide the app's backup, receipt and sharing features, we do not transfer it to others except as needed to provide those features or as required by law, and we do not use it for advertising.</p>
+
+<h2>5. Sharing a vehicle with other people</h2>
 <ul>
-<li>No advertising and no ad SDK. We do not sell your data. We do not use analytics. The app does not ask for your location.</li>
+<li><strong>Members see each other's names and Google email addresses.</strong> A member can also see every entry on the vehicle and who logged it.</li>
+<li><strong>When someone leaves or is removed,</strong> their email is removed from the vehicle's member list, <strong>their name stays on the entries they logged</strong> ("Logged by …"), and the entries stay on the vehicle.</li>
+<li><strong>Receipts are shared with members through Google Drive permissions.</strong> When a member is removed, <strong>their access to a receipt file is removed the next time the uploader's app opens or returns to the foreground. Until then the removed member can still open receipts that were shared with them.</strong> Receipts uploaded by a member who has left remain visible to the members who already had access.</li>
+<li>Invite codes are single-use and expire after 7 days. Anyone with a valid code can join while it is valid, so share it only with the person you mean.</li>
 </ul>
 
-<h2>Where your data lives</h2>
-<p>Your data is stored in Google Cloud Firestore (Firebase) [location] and, on Android, in an on-device cache so the app works offline. Data is encrypted in transit.</p>
+<h2>6. How we use your data, where it is stored, and security</h2>
+<p>We use your data to run the app: to show your records, sync them between your devices, back them up to your Drive, share vehicles you choose to share, and fix crashes. Data is stored in Google Cloud Firestore (Firebase) in [location] and in the on-device cache on Android. It is encrypted in transit. Access is controlled by security rules: you can read your own account record, and only members of a vehicle can read that vehicle's data. No system is perfectly secure, and we cannot guarantee absolute security. Google acts as our service provider for Firebase, Google Sign-In and Google Drive and handles that data under its own terms and policies.</p>
 
-<h2>Google Drive</h2>
-<p>If you use backups or receipts, the app asks for access to a folder it creates in your own Google Drive (the <code>drive.file</code> scope). It cannot see your other files. Backups and receipts are stored in your Drive, not on our servers.</p>
+<h2>7. Deleting your data and your choices</h2>
+<ul>
+<li><strong>In the app.</strong> Go to <strong>More → Account → Delete account</strong>. You see a summary first: what will be deleted, which vehicles you own that are shared will go to another member (by default the longest-standing member, and you can choose another member or delete that vehicle), and which memberships you will leave. You can back up or export first. You then sign in with Google again and type DELETE. An interrupted deletion resumes the next time you open the app.</li>
+<li><strong>On the web.</strong> The same flow is at <a href="https://milevana.poovarasu.dev/delete-account">milevana.poovarasu.dev/delete-account</a>.</li>
+<li><strong>If you never linked Google.</strong> Open <strong>More → Account → Delete all my data</strong> in the app. Anonymous accounts can be deleted in the app only.</li>
+<li><strong>What is deleted.</strong> Vehicles you chose to delete with their entries, reminders and checklist templates, the invites you created, your account record and settings, and your sign-in account.</li>
+<li><strong>What stays.</strong> <strong>Entries you logged on other people's vehicles stay, with your name on them.</strong> Receipts and backups in your own Google Drive stay in your Drive; delete them there if you want them gone.</li>
+<li><strong>What we cannot delete.</strong> If you moved data from an anonymous account into a Google account, the old anonymous account's documents remain in our database with no owner able to delete them. They contain the data you had before the move. We cannot promise that data is deleted.</li>
+<li><strong>Other choices.</strong> You can edit or delete any of your own entries, export your data as a CSV without a Google account, and back up to and restore from your own Drive.</li>
+</ul>
 
-<h2>Deleting your data</h2>
-<p>[Choose one before publishing, and only if you can honour it:] To delete your data, email <a href="mailto:support@poovarasu.dev">support@poovarasu.dev</a> from the address linked to your account (or describe your anonymous account's vehicles) and we will delete it. In-app deletion arrives in a later version and this policy will be updated then.</p>
+<h2>8. Retention, export and backups</h2>
+<p>We keep your data while your account exists and delete it as described in section 7. Crash reports are kept by Firebase under its standard retention. You can export your data as a CSV at any time and back it up to your own Drive. Backups, export and restore are free.</p>
 
-<h2>Children</h2>
-<p>Milevana is for people aged 18 and over.</p>
+<h2>9. Children</h2>
+<p>Milevana is intended for people aged <strong>18 and over</strong>. We do not knowingly collect data from children.</p>
 
-<h2>Changes and contact</h2>
-<p>We will update this policy when the app changes. Questions: <a href="mailto:support@poovarasu.dev">support@poovarasu.dev</a>.</p>
+<h2>10. Changes to this policy</h2>
+<p>We will post changes here and update the effective date. If a change is significant we will tell you in the app. Questions or requests: <a href="mailto:support@poovarasu.dev">support@poovarasu.dev</a>.</p>
 </body>
 </html>

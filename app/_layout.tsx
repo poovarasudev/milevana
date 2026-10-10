@@ -15,7 +15,7 @@ import { useAppStore } from '../src/features/appStore';
 import { registerReminderNavigator } from '../src/features/reminders';
 import { selectVehicle, startSession } from '../src/features/session';
 import { initI18n } from '../src/i18n';
-import { ConfigGate, ConnectGate, MergeResumeGate, SignInGate } from '../src/ui/gates';
+import { ConfigGate, ConnectGate, DeletionResumeGate, MergeResumeGate, SignInGate } from '../src/ui/gates';
 import {
   ConflictOverlay, LinkPromptOverlay, MergeOverlay, SignOutOverlay, SyncIssuesOverlay,
 } from '../src/ui/overlays';
@@ -65,6 +65,7 @@ export default function RootLayout() {
     : phase === 'connect' || phase === 'error' ? 'connect'
     : phase === 'signin' ? 'signin'
     : phase === 'merge-resume' ? 'merge'
+    : phase === 'deleting' ? 'deleting'
     : 'ready';
 
   return (
@@ -78,6 +79,7 @@ export default function RootLayout() {
           {gate === 'connect' && <ConnectGate />}
           {gate === 'signin' && <SignInGate />}
           {gate === 'merge' && <MergeResumeGate />}
+          {gate === 'deleting' && <DeletionResumeGate />}
           {gate === 'ready' && (
             <View style={{ flex: 1 }}>
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>

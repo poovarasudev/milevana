@@ -36,6 +36,7 @@ export type AuthErrorCode =
   | 'network'
   | 'credential-already-in-use'
   | 'requires-recent-login'
+  | 'user-mismatch' // re-auth credential belongs to a different account (VD-06)
   | 'unavailable'
   | 'unknown';
 
@@ -196,6 +197,14 @@ export interface FirebaseAdapter {
   signInWithRetainedCredential(): Promise<AuthUser>;
   /** Drop the retained credential — the conflict dialog's Cancel path. */
   discardRetainedCredential(): void;
+  /**
+   * Fresh Google sign-in for the *current* user (account deletion requires a
+   * recent login — REL-05/06). A credential from a different Google account
+   * rejects with 'user-mismatch'.
+   */
+  reauthenticateWithGoogle(): Promise<AuthUser>;
+  /** Delete the Firebase auth account — the last step of account deletion. */
+  deleteAccount(): Promise<void>;
   signOut(): Promise<void>;
 
   // --- diagnostics ---
@@ -231,6 +240,8 @@ export function normalizeAuthError(err: unknown): AuthError {
   switch (code) {
     case 'auth/credential-already-in-use':
       return new AuthError('credential-already-in-use', code, err);
+    case 'auth/user-mismatch':
+      return new AuthError('user-mismatch', code, err);
     case 'auth/requires-recent-login':
       return new AuthError('requires-recent-login', code, err);
     case 'auth/popup-blocked':

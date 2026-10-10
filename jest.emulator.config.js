@@ -18,6 +18,9 @@ module.exports = {
   transformIgnorePatterns: ['node_modules/(?!(@firebase|firebase)/)'],
   moduleNameMapper: {
     '^expo/virtual/env$': '<rootDir>/tests-stubs/expo-env.js',
+    // The account-deletion engine's resume marker lives in AsyncStorage;
+    // node has no RN runtime, so an in-memory stand-in serves the suite.
+    '^@react-native-async-storage/async-storage$': '<rootDir>/tests-stubs/async-storage.js',
   },
   testTimeout: 60000,
 };

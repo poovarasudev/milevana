@@ -1,8 +1,6 @@
 // FND-SET-01 / SC-SET01-01 — the hard-coded-string scanner itself: catches
 // visible literals, leaves code identifiers alone, honours i18n-allow.
 
-/* global describe, it, expect */
-
 const { scanSource } = require('./lib/i18n-scan.js');
 
 describe('i18n scanner', () => {

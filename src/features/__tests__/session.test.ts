@@ -154,6 +154,43 @@ test('resolveSelection: keep current > MRU > oldest active (DR-15)', () => {
   expect(resolveSelection([], ['a'], null)).toBeNull();
 });
 
+test('a stored deletion marker gates the session on "deleting" — user doc not recreated (REL-07, VD-04)', async () => {
+  const uid = 'linked-del';
+  await localFlags.saveDeletion(uid, {
+    status: 'in-progress', startedAt: { seconds: 1, nanoseconds: 0 },
+    handoffs: {}, completedSteps: ['handoffs'],
+  });
+  boot('native');
+  adapter.setUser(null);
+  await flush();
+  expect(useAppStore.getState().phase).toBe('ready'); // anonymous session first
+
+  adapter.setUser({ uid, isAnonymous: false, displayName: 'Del', email: 'del@x.com' });
+  await flush();
+  const st = useAppStore.getState();
+  expect(st.phase).toBe('deleting');
+  expect(st.deletionRecord?.status).toBe('in-progress');
+  // The marker stops ensureUser recreating the deleted document (OQ-39 path).
+  expect(adapter.docs.has(`users/${uid}`)).toBe(false);
+});
+
+test('an in-progress deletion on the user doc gates the session and mirrors the marker (REL-07)', async () => {
+  const uid = 'linked-del2';
+  boot('native');
+  adapter.setUser(null);
+  await flush();
+  await getRepos().users.ensureUser(uid, { isLinked: true });
+  await getRepos().users.setDeletion(uid, {
+    status: 'in-progress', startedAt: { seconds: 1, nanoseconds: 0 },
+    handoffs: {}, completedSteps: [],
+  });
+
+  adapter.setUser({ uid, isAnonymous: false, displayName: 'Del', email: 'del@x.com' });
+  await flush();
+  expect(useAppStore.getState().phase).toBe('deleting');
+  expect(await localFlags.deletion(uid)).toMatchObject({ status: 'in-progress' });
+});
+
 test('losing the selected vehicle owned by someone else flags access-lost (FND-OBS-03)', () => {
   const shared = {
     id: 'v9', pending: false, name: 'Shared car', type: 'car', color: 'c01',

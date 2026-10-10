@@ -12,6 +12,7 @@ import { AuthError, AuthUser, RepoError } from '../data/adapter';
 import { FirebaseConfigError, missingFirebaseEnvVars } from '../data/firebaseConfig';
 import { localFlags } from '../data/localFlags';
 import type { MalformedDocInfo } from '../data/repos/base';
+import type { DeletionDoc, UserDoc } from '../data/schema/user';
 import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { useAppStore } from './appStore';
 import { commitPendingDeletes, installDeleteFlush, startEntriesWatch } from './entries';
@@ -217,7 +218,8 @@ async function handleAuthChange(user: AuthUser | null): Promise<void> {
     return;
   }
   // Ignore duplicate events for the session that is already running.
-  if (st.user?.uid === user.uid && (st.phase === 'ready' || st.phase === 'merge-resume')) return;
+  if (st.user?.uid === user.uid
+    && (st.phase === 'ready' || st.phase === 'merge-resume' || st.phase === 'deleting')) return;
   await enterSession(token, user);
 }
 
@@ -283,15 +285,48 @@ async function enterSession(token: number, user: AuthUser): Promise<void> {
   if (token !== sessionToken) return;
   useAppStore.setState({ welcomeSeen, linkPromptDismissed: linkDismissed, mru, deleteFailedIds });
 
+  // REL-07 / VD-04: an in-progress account deletion gates the session with
+  // "Finish deleting your account". The local marker is checked first — after
+  // the user document is deleted it is the only resume source, and it must
+  // stop ensureUser recreating the document.
+  const marker = (await localFlags.deletion(uid)) as DeletionDoc | null;
+  if (marker && marker.status !== 'done') {
+    useAppStore.setState({ phase: 'deleting', deletionRecord: marker, deletionStep: null });
+    return;
+  }
+
+  let existing: UserDoc | null = null;
+  try {
+    existing = await repos.users.getUser(uid);
+  } catch (e) {
+    if (token !== sessionToken) return;
+    const code = e instanceof RepoError ? e.code : 'unknown';
+    if (code === 'unavailable' || code === 'offline') {
+      useAppStore.setState({ phase: 'connect' });
+      scheduleConnectRetry();
+    } else {
+      reportNonFatal(e, { stage: 'ensure-user', code });
+      useAppStore.setState({ phase: 'error' });
+    }
+    return;
+  }
+  if (existing?.deletion && existing.deletion.status !== 'done') {
+    await localFlags.saveDeletion(uid, existing.deletion);
+    useAppStore.setState({ phase: 'deleting', deletionRecord: existing.deletion, deletionStep: null });
+    return;
+  }
+
   try {
     // Create the user doc if missing (killed between sign-in and creation,
     // OQ-39). Never overwrites an existing document.
-    await repos.users.ensureUser(uid, {
-      language: deviceLanguage(),
-      isLinked: !user.isAnonymous,
-      displayName: user.displayName ?? undefined,
-      email: user.email ?? undefined,
-    });
+    if (!existing) {
+      await repos.users.ensureUser(uid, {
+        language: deviceLanguage(),
+        isLinked: !user.isAnonymous,
+        displayName: user.displayName ?? undefined,
+        email: user.email ?? undefined,
+      });
+    }
   } catch (e) {
     if (token !== sessionToken) return;
     const code = e instanceof RepoError ? e.code : 'unknown';

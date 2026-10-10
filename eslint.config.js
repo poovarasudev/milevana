@@ -12,6 +12,18 @@ module.exports = [
     ignores: ['dist/**', 'web-build/**', 'firebase/**', 'coverage/**', '.expo/**'],
   },
   {
+    // Node-run build/test scripts: Node and Jest globals are available.
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly', __dirname: 'readonly', process: 'readonly', console: 'readonly',
+        require: 'readonly', module: 'writable',
+        test: 'readonly', expect: 'readonly', describe: 'readonly', it: 'readonly',
+        beforeEach: 'readonly', afterEach: 'readonly', beforeAll: 'readonly', afterAll: 'readonly', jest: 'readonly',
+      },
+    },
+  },
+  {
     files: ['src/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [

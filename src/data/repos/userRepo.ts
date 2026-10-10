@@ -89,7 +89,21 @@ export class UserRepo extends RepoBase {
     await this.finishWrite(this.adapter.updateDoc(`users/${uid}`, { drive }));
   }
 
+  /**
+   * Write the account-deletion progress record (VD-04/07). Server-confirmed
+   * on every platform — the record drives resume, so it must not sit only in
+   * the offline queue.
+   */
   async setDeletion(uid: string, deletion: DeletionDoc): Promise<void> {
-    await this.finishWrite(this.adapter.updateDoc(`users/${uid}`, { deletion }));
+    await this.confirmedWrite(this.adapter.updateDoc(`users/${uid}`, { deletion }));
+  }
+
+  /**
+   * Delete the user document — the second-to-last deletion step (VD-04).
+   * Server-confirmed so the local marker is only trusted after the doc is
+   * really gone.
+   */
+  async deleteUserDoc(uid: string): Promise<void> {
+    await this.confirmedWrite(this.adapter.deleteDoc(`users/${uid}`));
   }
 }

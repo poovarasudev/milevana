@@ -50,6 +50,9 @@ export class FakeAdapter implements FirebaseAdapter {
   signInAs: AuthUser | null = null; // what signInWithGoogle/retained returns
   linkError: Error | null = null;
   retainedCredential = false;
+  reauthError: Error | null = null; // set to make reauthenticateWithGoogle fail
+  deletedAccounts: string[] = []; // uids passed to deleteAccount
+  deleteAccountError: Error | null = null;
 
   constructor(platform: 'native' | 'web' = 'native') {
     this.platform = platform;
@@ -184,7 +187,10 @@ export class FakeAdapter implements FirebaseAdapter {
 
   pendingWriteCount(): number { return this.pending; }
   async waitForPendingWrites(): Promise<void> {}
-  async clearPersistence(): Promise<void> { this.docs.clear(); }
+  // clearPersistence wipes the local cache only — `docs` models the backend
+  // and must survive it. Record the call so tests can assert it ran.
+  persistenceCleared = false;
+  async clearPersistence(): Promise<void> { this.persistenceCleared = true; }
   onConnectivityChanged(cb: (online: boolean) => void): Unsubscribe {
     this.connCbs.push(cb);
     return () => { this.connCbs = this.connCbs.filter((x) => x !== cb); };
@@ -228,6 +234,18 @@ export class FakeAdapter implements FirebaseAdapter {
     return this.signInAs;
   }
   discardRetainedCredential(): void { this.retainedCredential = false; }
+  async reauthenticateWithGoogle(): Promise<AuthUser> {
+    if (this.reauthError) throw this.reauthError;
+    const u = this.user;
+    if (!u) throw new RepoError('unavailable', 'no signed-in user');
+    return u;
+  }
+  async deleteAccount(): Promise<void> {
+    if (this.deleteAccountError) throw this.deleteAccountError;
+    if (!this.user) throw new RepoError('unavailable', 'no signed-in user');
+    this.deletedAccounts.push(this.user.uid);
+    this.setUser(null);
+  }
   async signOut(): Promise<void> { this.setUser(null); }
 
   reportNonFatal(error: unknown, context?: Record<string, string>): void {

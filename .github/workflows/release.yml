@@ -1,0 +1,88 @@
+# Milevana release pipeline (REL-01, VD-03). A semantic version tag (vX.Y.Z)
+# is the only release trigger. The gate job blocks everything until the
+# Maestro + manual checklist results are recorded in docs/release-runs/.
+# The same run then builds + submits the Android bundle to the internal
+# testing track AND deploys Firestore rules/indexes and the web app.
+#
+# Secrets (owner-controlled): EXPO_TOKEN, FIREBASE_TOKEN,
+# PLAY_SERVICE_ACCOUNT_JSON. Vars: EXPO_PUBLIC_FIREBASE_*,
+# EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Play Console promotion beyond the internal
+# track stays a manual owner step (REL-04/15).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+env:
+  EXPO_PUBLIC_FIREBASE_API_KEY: ${{ vars.EXPO_PUBLIC_FIREBASE_API_KEY }}
+  EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'milevana.firebaseapp.com' }}
+  EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'milevana' }}
+  EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'milevana.firebasestorage.app' }}
+  EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+  EXPO_PUBLIC_FIREBASE_APP_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_APP_ID }}
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+
+jobs:
+  gate:
+    name: Release gate — recorded checklists (AC-R2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Maestro + manual checklist recorded
+        run: node scripts/check-release-gate.mjs "${GITHUB_REF_NAME}"
+
+  build-submit:
+    name: EAS build + submit to internal testing
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Play service-account key (submit only; never committed)
+        run: echo "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > play-service-account.json
+
+      - name: Build Android app bundle (remote versionCode, semantic versionName)
+        run: eas build --platform android --profile production --non-interactive --wait
+
+      - name: Submit to Google Play internal testing track
+        run: eas submit --platform android --profile internal --latest --non-interactive
+
+  firebase-deploy:
+    name: Firestore rules + indexes + web deploy
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Web export
+        run: npx expo export --platform web
+
+      - name: Deploy Firestore rules and indexes
+        working-directory: firebase
+        run: npx firebase-tools deploy --only firestore:rules,firestore:indexes --project milevana --token "${{ secrets.FIREBASE_TOKEN }}"
+
+      - name: Deploy web app to Firebase Hosting
+        working-directory: firebase
+        run: npx firebase-tools deploy --only hosting --project milevana --token "${{ secrets.FIREBASE_TOKEN }}"

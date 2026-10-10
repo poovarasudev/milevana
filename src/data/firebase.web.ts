@@ -6,8 +6,9 @@
 
 import { FirebaseApp, FirebaseError, getApps, initializeApp } from 'firebase/app';
 import {
-  Auth, browserLocalPersistence, getAuth, GoogleAuthProvider,
-  linkWithPopup, linkWithRedirect, OAuthCredential, onAuthStateChanged, setPersistence,
+  Auth, browserLocalPersistence, deleteUser, getAuth, GoogleAuthProvider,
+  linkWithPopup, linkWithRedirect, OAuthCredential, onAuthStateChanged,
+  reauthenticateWithPopup, reauthenticateWithRedirect, setPersistence,
   signInAnonymously, signInWithCredential, signInWithPopup, signInWithRedirect, signOut, User,
 } from 'firebase/auth';
 import {
@@ -319,6 +320,35 @@ export function createWebAdapter(deps: WebAdapterDeps = {}): FirebaseAdapter {
 
     discardRetainedCredential() {
       retainedCredential = null;
+    },
+
+    // Recent-login re-authentication for account deletion (REL-05/09): popup
+    // first, redirect fallback like sign-in (DR-18).
+    async reauthenticateWithGoogle() {
+      const u = auth?.currentUser;
+      if (!auth || !u) throw new AuthError('unavailable', 'no signed-in user');
+      const provider = new GoogleAuthProvider();
+      try {
+        const cred = await reauthenticateWithPopup(u, provider);
+        return toAuthUser(cred.user) as AuthUser;
+      } catch (e) {
+        const err = normalizeAuthError(e);
+        if (err.code === 'popup-blocked') {
+          await reauthenticateWithRedirect(u, provider);
+          throw new AuthError('redirect-started');
+        }
+        throw err;
+      }
+    },
+
+    async deleteAccount() {
+      const u = auth?.currentUser;
+      if (!u) throw new AuthError('unavailable', 'no signed-in user');
+      try {
+        await deleteUser(u);
+      } catch (e) {
+        throw normalizeAuthError(e);
+      }
     },
 
     async signOut() {

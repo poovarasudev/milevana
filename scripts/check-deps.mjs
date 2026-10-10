@@ -44,6 +44,13 @@ const FORBIDDEN = [
   /@firebase\/analytics/i,
 ];
 
+// REL-01: no OTA-update SDK in v1 — store builds are the only update channel.
+const FORBIDDEN_OTA = [
+  /^expo-updates$/i,
+  /code-?push/i,
+  /react-native-code-push/i,
+];
+
 // The `firebase` umbrella package pulls in @firebase/analytics* transitively;
 // it is never imported (enforced by check-boundaries.mjs, which would flag any
 // 'firebase/analytics' import outside the adapter) and never configured (no
@@ -72,4 +79,9 @@ if (hits.length) {
   console.error('Forbidden ad/analytics SDKs found in the dependency tree:\n' + hits.map((h) => '  - ' + h).join('\n'));
   process.exit(1);
 }
-console.log(`check-deps: OK (${names.size} packages scanned, no ad or analytics SDK)`);
+const ota = [...names].filter((n) => FORBIDDEN_OTA.some((re) => re.test(n)));
+if (ota.length) {
+  console.error('Forbidden OTA-update SDKs found in the dependency tree:\n' + ota.map((h) => '  - ' + h).join('\n'));
+  process.exit(1);
+}
+console.log(`check-deps: OK (${names.size} packages scanned, no ad, analytics or OTA-update SDK)`);

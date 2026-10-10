@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import type { AuthUser, WriteOpRecord } from '../data/adapter';
 import type { MalformedDocInfo } from '../data/repos/base';
-import type { UserDoc } from '../data/schema/user';
+import type { DeletionDoc, UserDoc } from '../data/schema/user';
 import type { EntryRecord } from '../data/repos/entryRepo';
 import type { ReminderRecord } from '../data/repos/reminderRepo';
 import type { TemplateRecord } from '../data/repos/templateRepo';
@@ -20,6 +20,7 @@ export type Phase =
   | 'signin' // web signed-out visitor — Google sign-in screen
   | 'error' // sign-in failed with a non-network error — Retry offered
   | 'merge-resume' // stored merge data found at launch — "Finish moving your data"
+  | 'deleting' // unfinished account deletion found — "Finish deleting your account" (REL-07)
   | 'ready';
 
 export interface SyncIssue {
@@ -118,6 +119,11 @@ interface AppState {
   signingOut: boolean;
   signOutPending: number | null; // null = dialog closed; number = open with count
 
+  // account deletion (REL-05..09): the in-progress record from users/{uid}
+  // (or the local marker once the doc is gone) and the step currently running.
+  deletionRecord: DeletionDoc | null;
+  deletionStep: string | null;
+
   // vehicle flags
   deleteFailedIds: string[];
 
@@ -182,6 +188,8 @@ const initial: Omit<AppState, 'set'> = {
   mergeResumeAvailable: false,
   signingOut: false,
   signOutPending: null,
+  deletionRecord: null,
+  deletionStep: null,
   deleteFailedIds: [],
   receiptQueuePending: 0,
   receiptStorageFull: false,
