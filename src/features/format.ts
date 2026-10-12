@@ -33,8 +33,13 @@ export function formatDate(ts: Timestamp, format: SettingsDoc['dateFormat']): st
  * Vehicle odometer for display: converted to the Distance setting with one
  * decimal when converted; `hours` is never converted (FR-VEH-16).
  */
-export function displayOdometer(vehicle: VehicleRecord, settings: SettingsDoc): string {
-  const d = displayDistance(vehicle.lastOdometer, vehicle.odometerUnit, settings.distanceUnit);
+export function displayOdometer(
+  vehicle: VehicleRecord,
+  settings: SettingsDoc,
+  which: 'last' | 'start' = 'last',
+): string {
+  const raw = which === 'start' ? vehicle.startOdometer : vehicle.lastOdometer;
+  const d = displayDistance(raw, vehicle.odometerUnit, settings.distanceUnit);
   const unitLabel = t(`units.${d.unit}`);
   const num = d.converted ? d.value.toFixed(1) : formatNumber(d.value);
   return `${num} ${unitLabel}`;

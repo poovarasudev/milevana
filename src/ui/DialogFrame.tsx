@@ -14,7 +14,7 @@ export function DialogFrame({ children, maxWidth = 560 }: { children: ReactNode;
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: th.bg }}>
       <View
         style={{
-          width: '100%', maxWidth, backgroundColor: th.card, borderRadius: 24,
+          width: '100%', maxWidth, maxHeight: '100%', backgroundColor: th.card, borderRadius: 24,
           borderWidth: 1, borderColor: th.divider, overflow: 'hidden',
         }}
       >

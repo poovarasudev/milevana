@@ -226,7 +226,7 @@ function VehicleDetailScreen() {
               />
               {web && !online ? <T size={12} color={th.muted}>{t('deleteVehicle.offlineBlocked')}</T> : null}
               <T size={12} color={th.muted} style={{ marginTop: 4 }}>
-                {t('vehicleDetail.startOdometer')}: {displayOdometer(vehicle, settings)}
+                {t('vehicleDetail.startOdometer')}: {displayOdometer(vehicle, settings, 'start')}
               </T>
             </View>
           ) : null}

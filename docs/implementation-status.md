@@ -364,3 +364,31 @@ results recorded in each `docs/*-verification.md`.
 layout, Android charts), two-account rows, real-Google/Drive rows, and
 production-Hosting rows stay Partial/owner-only for the owner's manual
 Expo run.
+
+## Production web run (2026-10-12)
+
+Emulators off; the web build ran against the real `milevana` Firebase project
+(Auth + Firestore, asia-south1). Firestore rules and indexes from
+`firebase/` were deployed to production first (`firebase deploy --only
+firestore`) — until then every Firestore call returned `permission-denied`.
+
+Driven by hand in Chrome as the owner's Google account: sign-in → welcome →
+create vehicle → log fuel (40 L × 100 = ₹4,000, derived total) → dashboard
+(₹4,000, ₹10.00/km) → history → reports (figures match) → reminder from the
+Insurance template (persisted across reload) → checklist from the starter
+template → backup/export screen → delete vehicle (type-to-confirm) back to the
+empty state. Test data was removed afterwards.
+
+Defects found and fixed in this run:
+
+- Wide-web `DialogFrame` card had no height bound, so the vehicle detail screen
+  could not scroll and Archive/Delete were unreachable (`src/ui/DialogFrame.tsx`).
+- The "Start odometer" line on vehicle detail printed the current odometer
+  (`displayOdometer(..., 'start')`, regression test added).
+
+Observed, not fixed (dev-only React DOM warnings): "Unknown event handler
+property" on Reports and "`<button>` cannot contain a nested `<button>`" on the
+date field.
+
+Still open: Drive consent/backup/restore, two-account sharing and the
+device-only rows (unchanged).
