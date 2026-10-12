@@ -3,7 +3,7 @@
 // `?preset=` opens the create form pre-filled from a quick-add template
 // (REM-04). Archived vehicles are read-only (RD-12/DR-13).
 
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { RepoError } from '../../src/data/adapter';
@@ -14,7 +14,7 @@ import { MAX_REMINDERS_PER_VEHICLE } from '../../src/domain/reminders';
 import { t } from '../../src/i18n';
 import { DialogFrame } from '../../src/ui/DialogFrame';
 import { ErrorBoundary } from '../../src/ui/ErrorBoundary';
-import { Card, Header, T } from '../../src/ui/kit';
+import { backOrHome, Card, Header, T } from '../../src/ui/kit';
 import { KEYBOARD_BEHAVIOR } from '../../src/ui/platform';
 import { ReminderForm, ReminderFormResult } from '../../src/ui/ReminderForm';
 import type { ReminderPreset } from '../../src/ui/RemindersList';
@@ -45,7 +45,7 @@ function ReminderScreen() {
       } else if ('input' in v) {
         await createReminder(vehicle.id, v.input);
       }
-      router.back();
+      backOrHome();
     } catch (e) {
       if (e instanceof RepoError && e.message === 'reminder-limit') {
         setError(t('reminderForm.tooMany', { max: MAX_REMINDERS_PER_VEHICLE }));
@@ -62,7 +62,7 @@ function ReminderScreen() {
     setSaving(true);
     try {
       await deleteReminder(vehicle.id, reminder.id);
-      router.back();
+      backOrHome();
     } catch (e) {
       reportNonFatal(e, { stage: 'reminder-delete', id: reminder.id });
       setError(t('reminders.saveFailed'));

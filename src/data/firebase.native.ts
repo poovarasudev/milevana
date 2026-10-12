@@ -4,18 +4,20 @@
 // credential link; non-fatal errors go to Crashlytics (FR-ERR-05).
 
 import {
-  deleteUser, getAuth, GoogleAuthProvider, linkWithCredential, onAuthStateChanged,
-  reauthenticateWithCredential, signInAnonymously, signInWithCredential, signOut,
+  connectAuthEmulator, deleteUser, getAuth, GoogleAuthProvider, linkWithCredential,
+  onAuthStateChanged, reauthenticateWithCredential, signInAnonymously,
+  signInWithCredential, signOut,
 } from '@react-native-firebase/auth';
-import type { User } from '@react-native-firebase/auth';
+import type { Auth, User } from '@react-native-firebase/auth';
 import { crash as crashlyticsCrash, getCrashlytics, recordError, setAttribute } from '@react-native-firebase/crashlytics';
 import {
   arrayUnion as fsArrayUnion,
-  collection, clearPersistence, deleteDoc, doc, getDoc, getDocFromCache,
-  getDocFromServer, getDocs, getDocsFromCache, getDocsFromServer,
-  getFirestore, limit as qLimit, onSnapshot, orderBy as qOrderBy, query,
-  serverTimestamp, setDoc, terminate, Timestamp as FsTimestamp, updateDoc,
-  waitForPendingWrites, where as qWhere, writeBatch,
+  collection, clearPersistence, connectFirestoreEmulator, deleteDoc, doc,
+  getDoc, getDocFromCache, getDocFromServer, getDocs, getDocsFromCache,
+  getDocsFromServer, getFirestore, limit as qLimit, onSnapshot,
+  orderBy as qOrderBy, query, serverTimestamp, setDoc, terminate,
+  Timestamp as FsTimestamp, updateDoc, waitForPendingWrites,
+  where as qWhere, writeBatch,
 } from '@react-native-firebase/firestore';
 import type {
   DocumentSnapshot, Firestore, Query as FsQuery, QuerySnapshot,
@@ -23,36 +25,20 @@ import type {
 } from '@react-native-firebase/firestore';
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import {
-  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, isArrayUnion,
+  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter,
   normalizeAuthError, normalizeError, QuerySnap, QuerySpec, RepoError,
-  SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
+  WriteBatch, WriteOpRecord,
 } from './adapter';
-import { GOOGLE_WEB_CLIENT_ID } from './firebaseConfig';
-import type { Timestamp as DomainTimestamp } from './schema/common';
+import { makeWriteEncoder } from './encodeWrite';
+import { AUTH_EMULATOR_HOST, FIRESTORE_EMULATOR_HOST, GOOGLE_WEB_CLIENT_ID } from './firebaseConfig';
 
 // --- value encoding --------------------------------------------------------
 
-function isTimestampLike(v: unknown): v is DomainTimestamp {
-  return (
-    typeof v === 'object' && v !== null &&
-    Number.isInteger((v as DomainTimestamp).seconds) &&
-    Number.isInteger((v as DomainTimestamp).nanoseconds) &&
-    Object.keys(v as object).length === 2
-  );
-}
-
-function encodeWriteData(data: unknown): unknown {
-  if (data === SERVER_TIMESTAMP) return serverTimestamp();
-  if (isArrayUnion(data)) return fsArrayUnion(...data.__milevanaArrayUnion.map(encodeWriteData));
-  if (isTimestampLike(data)) return new FsTimestamp(data.seconds, data.nanoseconds);
-  if (Array.isArray(data)) return data.map(encodeWriteData);
-  if (typeof data === 'object' && data !== null) {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(data)) out[k] = encodeWriteData(v);
-    return out;
-  }
-  return data;
-}
+const encodeWriteData = makeWriteEncoder({
+  serverTimestamp: () => serverTimestamp(),
+  arrayUnion: (...els) => fsArrayUnion(...els),
+  timestamp: (s, n) => new FsTimestamp(s, n),
+});
 
 function decodeValue(v: unknown): unknown {
   if (
@@ -129,11 +115,34 @@ async function googleIdToken(): Promise<string> {
   return res.data.idToken;
 }
 
+// Dev-build emulator hookup: EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST /
+// EXPO_PUBLIC_AUTH_EMULATOR_HOST point the native SDKs at the local emulator
+// suite (10.0.2.2 from the AVD). Never active in production builds — __DEV__
+// is false there — and never when the vars are unset.
+const useEmulators = __DEV__ && (!!FIRESTORE_EMULATOR_HOST || !!AUTH_EMULATOR_HOST);
+
+function makeFirestore(): Firestore {
+  const d = getFirestore();
+  if (useEmulators && FIRESTORE_EMULATOR_HOST) {
+    const [host, port] = FIRESTORE_EMULATOR_HOST.split(':');
+    connectFirestoreEmulator(d, host, Number(port));
+  }
+  return d;
+}
+
+function connectAuthEmu(a: Auth): void {
+  if (useEmulators && AUTH_EMULATOR_HOST) {
+    const [host, port] = AUTH_EMULATOR_HOST.split(':');
+    connectAuthEmulator(a, `http://${host}:${port}`);
+  }
+}
+
 export function createNativeAdapter(): FirebaseAdapter {
   // `let` because sign-out terminates the instance before clearing persistence
   // and then rebuilds it for the next (anonymous) session.
-  let db = getFirestore();
+  let db = makeFirestore();
   const a = getAuth();
+  connectAuthEmu(a);
   let pending = 0;
   // Conflict flow: the Google id token from a failed link, memory only (OQ-06).
   let retainedIdToken: string | null = null;
@@ -243,7 +252,7 @@ export function createNativeAdapter(): FirebaseAdapter {
       try {
         await clearPersistence(db);
       } finally {
-        db = getFirestore();
+        db = makeFirestore();
       }
     },
 

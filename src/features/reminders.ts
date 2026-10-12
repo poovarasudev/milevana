@@ -34,6 +34,7 @@ import { formatDate } from './format';
 import { reportNonFatal } from './reporting';
 import { adapter, getRepos } from './runtime';
 import { guardedWrite } from './vehicleActions';
+import { watchWithRetry } from './watchRetry';
 
 // --- module state -------------------------------------------------------------
 
@@ -167,19 +168,22 @@ export function syncReminderWatches(): void {
     if (reminderStops.has(vid)) continue;
     reminderStops.set(
       vid,
-      getRepos().reminders.watch(
-        vid,
-        (list) => {
-          const s = useAppStore.getState();
-          useAppStore.setState({
-            reminders: { ...s.reminders, [vid]: list },
-            remindersArrived: { ...s.remindersArrived, [vid]: true },
-          });
-          syncOdoWatches();
-          scanForCompletions(vid);
-          requestRebuild();
-        },
-        { onError: (e) => reportNonFatal(e, { stage: 'watch-reminders' }) },
+      watchWithRetry(
+        (onError) => getRepos().reminders.watch(
+          vid,
+          (list) => {
+            const s = useAppStore.getState();
+            useAppStore.setState({
+              reminders: { ...s.reminders, [vid]: list },
+              remindersArrived: { ...s.remindersArrived, [vid]: true },
+            });
+            syncOdoWatches();
+            scanForCompletions(vid);
+            requestRebuild();
+          },
+          { onError },
+        ),
+        (e) => reportNonFatal(e, { stage: 'watch-reminders' }),
       ),
     );
   }
@@ -224,16 +228,19 @@ function syncOdoWatches(): void {
     if (odoStops.has(vid)) continue;
     odoStops.set(
       vid,
-      getRepos().entries.watchSince(
-        vid,
-        cutoff,
-        (entries) => {
-          const s = useAppStore.getState();
-          useAppStore.setState({ odoEntries: { ...s.odoEntries, [vid]: entries } });
-          scanForCompletions(vid);
-          requestRebuild();
-        },
-        { onError: (e) => reportNonFatal(e, { stage: 'watch-odo-entries' }) },
+      watchWithRetry(
+        (onError) => getRepos().entries.watchSince(
+          vid,
+          cutoff,
+          (entries) => {
+            const s = useAppStore.getState();
+            useAppStore.setState({ odoEntries: { ...s.odoEntries, [vid]: entries } });
+            scanForCompletions(vid);
+            requestRebuild();
+          },
+          { onError },
+        ),
+        (e) => reportNonFatal(e, { stage: 'watch-odo-entries' }),
       ),
     );
   }

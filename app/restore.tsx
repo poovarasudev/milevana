@@ -4,7 +4,6 @@
 // vehicles are skipped — then a chunked write run with progress and Cancel
 // (≤500-op batches; re-running after cancel/failure is safe — ED-06).
 
-import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { BackupFileError } from '../src/data/drive/backupFile';
@@ -20,7 +19,7 @@ import {
 import { reportNonFatal } from '../src/features/reporting';
 import { t } from '../src/i18n';
 import { ErrorBoundary } from '../src/ui/ErrorBoundary';
-import { Button, Card, Chip, Header, Icon, Row, T } from '../src/ui/kit';
+import { backOrHome, Button, Card, Chip, Header, Icon, Row, T } from '../src/ui/kit';
 import { Notices } from '../src/ui/Notices';
 import { useTheme } from '../src/ui/theme';
 
@@ -103,7 +102,7 @@ function RestoreScreen() {
     }
   };
 
-  const back = () => router.back();
+  const back = () => backOrHome();
 
   return (
     <View style={{ flex: 1, backgroundColor: th.bg }}>

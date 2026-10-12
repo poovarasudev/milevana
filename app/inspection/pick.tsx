@@ -5,7 +5,7 @@
 
 import { router } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
-import { useAppStore } from '../../src/features/appStore';
+import { EMPTY_LIST, useAppStore } from '../../src/features/appStore';
 import { canMutateTemplates } from '../../src/features/checklists';
 import { t } from '../../src/i18n';
 import { NoVehicle } from '../../src/ui/Empty';
@@ -18,7 +18,7 @@ function InspectionPickScreen() {
   const vehicle = useAppStore((s) =>
     s.vehicles.find((v) => v.id === s.selectedVehicleId));
   const templates = useAppStore((s) =>
-    (vehicle && s.templatesVehicleId === vehicle.id ? s.templates : []));
+    (vehicle && s.templatesVehicleId === vehicle.id ? s.templates : EMPTY_LIST));
   const arrived = useAppStore((s) =>
     !!vehicle && s.templatesVehicleId === vehicle.id && s.templatesArrived);
   const mutable = canMutateTemplates(vehicle);

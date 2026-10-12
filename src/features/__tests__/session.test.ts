@@ -10,7 +10,8 @@ import type { VehicleRecord } from '../../data/repos/vehicleRepo';
 import { resetAppStore, useAppStore } from '../appStore';
 import { getRepos, resetRuntimeForTests } from '../runtime';
 import {
-  handleVehicleList, resolveSelection, selectVehicle, startSession, retryBootstrap,
+  handleVehicleList, pauseSession, refreshSession, resolveSelection, selectVehicle,
+  startSession, retryBootstrap,
 } from '../session';
 import { FakeAdapter } from './fakeAdapter';
 
@@ -229,4 +230,57 @@ test('losing a vehicle I owned does not flag access-lost', () => {
   });
   handleVehicleList([]);
   expect(useAppStore.getState().accessLost).toBe(false);
+});
+
+// Found during emulator verification: handleAuthChange tore the watches down
+// BEFORE its duplicate-event early return, so a same-user auth callback (a
+// token refresh, or the Retry banner's refreshSession) killed every live
+// watch and left "Loading entries…" stuck forever.
+
+test('a duplicate auth event for the running session keeps watches alive', async () => {
+  boot('native');
+  adapter.setUser(null);
+  await flush();
+  const repos = getRepos();
+  const v1 = await repos.vehicles.create({
+    name: 'Car One', type: 'car', color: 'c01', fuelTypes: ['petrol'],
+    odometerUnit: 'km', currency: 'INR', startOdometer: 100,
+  });
+  await flush();
+  const user = useAppStore.getState().user!;
+  // Same-user callback — what a token refresh fires.
+  adapter.setUser({ ...user });
+  await flush();
+  // The entries watch must still be live: a server-side write lands.
+  await adapter.setDoc(`vehicles/${v1}/entries/e1`, {
+    type: 'expense', date: { seconds: 100, nanoseconds: 0 },
+    amount: { minor: 5000, currency: 'INR' }, category: 'Parking',
+    attachments: [], uploaderUids: [],
+    createdBy: user.uid, createdByName: 'Me', updatedBy: user.uid,
+    schemaVersion: 1,
+    createdAt: { seconds: 1, nanoseconds: 0 }, updatedAt: { seconds: 1, nanoseconds: 0 },
+  });
+  await flush();
+  const st = useAppStore.getState();
+  expect(st.phase).toBe('ready');
+  expect(st.entries.some((e) => e.id === 'e1')).toBe(true);
+});
+
+test('refreshSession re-enters after pauseSession tore the watches down', async () => {
+  boot('native');
+  adapter.setUser(null);
+  await flush();
+  const repos = getRepos();
+  const v1 = await repos.vehicles.create({
+    name: 'Car One', type: 'car', color: 'c01', fuelTypes: ['petrol'],
+    odometerUnit: 'km', currency: 'INR', startOdometer: 100,
+  });
+  await flush();
+  pauseSession(); // sign-out pre-step: watches stopped, phase stays ready
+  refreshSession();
+  await flush();
+  const st = useAppStore.getState();
+  expect(st.phase).toBe('ready');
+  expect(st.selectedVehicleId).toBe(v1);
+  expect(st.entriesArrived).toBe(true);
 });

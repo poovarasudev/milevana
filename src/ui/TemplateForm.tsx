@@ -12,7 +12,7 @@ import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import { MAX_TEMPLATE_ITEMS, SHORT_TEXT_MAX } from '../data/schema/common';
 import { newItemId, validateTemplateInput } from '../domain/checklists';
 import { canDeleteTemplate } from '../features/checklists';
-import { useAppStore } from '../features/appStore';
+import { EMPTY_LIST, useAppStore } from '../features/appStore';
 import { adapter } from '../features/runtime';
 import { t } from '../i18n';
 import { Banner, Button, Card, Field, Icon, IconButton, Label, T } from './kit';
@@ -50,7 +50,7 @@ export function TemplateForm({ vehicle, template, saving, saveError, onSubmit, o
   const th = useTheme();
   const online = useAppStore((s) => s.online);
   const uid = useAppStore((s) => s.user?.uid);
-  const templates = useAppStore((s) => (s.templatesVehicleId === vehicle.id ? s.templates : []));
+  const templates = useAppStore((s) => (s.templatesVehicleId === vehicle.id ? s.templates : EMPTY_LIST));
   const web = adapter().platform === 'web';
   const readOnly = vehicle.archived;
   const deletable = !!template && canDeleteTemplate(template, vehicle, uid) && !!onDelete;

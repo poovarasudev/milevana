@@ -13,7 +13,7 @@ import type { VehicleRecord } from '../data/repos/vehicleRepo';
 import {
   canAddTemplate, STARTER_IDS, startersFor, type StarterId,
 } from '../domain/checklists';
-import { useAppStore } from '../features/appStore';
+import { EMPTY_LIST, useAppStore } from '../features/appStore';
 import {
   canMutateTemplates, copyDestinations, copyTemplateToVehicle, createStarter,
 } from '../features/checklists';
@@ -175,7 +175,7 @@ export function ChecklistsList({ vehicle }: { vehicle: VehicleRecord }) {
   const th = useTheme();
   const online = useAppStore((s) => s.online);
   const web = isWeb();
-  const templates = useAppStore((s) => (s.templatesVehicleId === vehicle.id ? s.templates : []));
+  const templates = useAppStore((s) => (s.templatesVehicleId === vehicle.id ? s.templates : EMPTY_LIST));
   const arrived = useAppStore((s) => s.templatesVehicleId === vehicle.id && s.templatesArrived);
   const [copying, setCopying] = useState<TemplateRecord | null>(null);
   const [starterError, setStarterError] = useState<string | null>(null);

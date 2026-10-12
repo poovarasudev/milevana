@@ -6,10 +6,11 @@
 
 import { FirebaseApp, FirebaseError, getApps, initializeApp } from 'firebase/app';
 import {
-  Auth, browserLocalPersistence, deleteUser, getAuth, GoogleAuthProvider,
-  linkWithPopup, linkWithRedirect, OAuthCredential, onAuthStateChanged,
-  reauthenticateWithPopup, reauthenticateWithRedirect, setPersistence,
-  signInAnonymously, signInWithCredential, signInWithPopup, signInWithRedirect, signOut, User,
+  Auth, browserLocalPersistence, connectAuthEmulator, deleteUser, getAuth,
+  GoogleAuthProvider, linkWithPopup, linkWithRedirect, OAuthCredential,
+  onAuthStateChanged, reauthenticateWithPopup, reauthenticateWithRedirect,
+  setPersistence, signInAnonymously, signInWithCredential, signInWithPopup,
+  signInWithRedirect, signOut, User,
 } from 'firebase/auth';
 import {
   collection, connectFirestoreEmulator, doc, DocumentSnapshot, Firestore,
@@ -20,15 +21,15 @@ import {
   waitForPendingWrites, where as qWhere, writeBatch, WriteBatch as SdkWriteBatch,
 } from 'firebase/firestore';
 import {
-  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter, isArrayUnion,
+  AuthError, AuthUser, CommitHandle, DocSnap, FirebaseAdapter,
   normalizeAuthError, normalizeError, QuerySnap, QuerySpec, RepoError,
-  SERVER_TIMESTAMP, WriteBatch, WriteOpRecord,
+  WriteBatch, WriteOpRecord,
 } from './adapter';
+import { makeWriteEncoder } from './encodeWrite';
 import {
-  FIRESTORE_EMULATOR_HOST, FirebaseConfigError, firebaseConfig, GOOGLE_WEB_CLIENT_ID,
-  missingFirebaseEnvVars,
+  AUTH_EMULATOR_HOST, FIRESTORE_EMULATOR_HOST, FirebaseConfigError, firebaseConfig,
+  GOOGLE_WEB_CLIENT_ID, missingFirebaseEnvVars,
 } from './firebaseConfig';
-import type { Timestamp as DomainTimestamp } from './schema/common';
 
 export interface WebAdapterDeps {
   app?: FirebaseApp;
@@ -40,30 +41,11 @@ export interface WebAdapterDeps {
 
 // --- value encoding --------------------------------------------------------
 
-// Domain timestamps are plain { seconds, nanoseconds } objects; on write they
-// become Firestore Timestamp instances, and SERVER_TIMESTAMP becomes the
-// server sentinel.
-function isTimestampLike(v: unknown): v is DomainTimestamp {
-  return (
-    typeof v === 'object' && v !== null &&
-    Number.isInteger((v as DomainTimestamp).seconds) &&
-    Number.isInteger((v as DomainTimestamp).nanoseconds) &&
-    Object.keys(v as object).length === 2
-  );
-}
-
-export function encodeWriteData(data: unknown): unknown {
-  if (data === SERVER_TIMESTAMP) return serverTimestamp();
-  if (isArrayUnion(data)) return fsArrayUnion(...data.__milevanaArrayUnion.map(encodeWriteData));
-  if (isTimestampLike(data)) return new FsTimestamp(data.seconds, data.nanoseconds);
-  if (Array.isArray(data)) return data.map(encodeWriteData);
-  if (typeof data === 'object' && data !== null) {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(data)) out[k] = encodeWriteData(v);
-    return out;
-  }
-  return data;
-}
+export const encodeWriteData = makeWriteEncoder({
+  serverTimestamp: () => serverTimestamp(),
+  arrayUnion: (...els) => fsArrayUnion(...els),
+  timestamp: (s, n) => new FsTimestamp(s, n),
+});
 
 // Firestore Timestamps are detected by shape (not instanceof) so values from a
 // differently-bundled SDK version still decode.
@@ -393,7 +375,11 @@ export function getFirebase(): FirebaseAdapter {
         const [host, port] = FIRESTORE_EMULATOR_HOST.split(':');
         connectFirestoreEmulator(db, host, Number(port));
       }
-      singleton = createWebAdapter({ app, firestore: db });
+      const auth = getAuth(app);
+      if (AUTH_EMULATOR_HOST) {
+        connectAuthEmulator(auth, `http://${AUTH_EMULATOR_HOST}`);
+      }
+      singleton = createWebAdapter({ app, firestore: db, auth });
     } catch (e) {
       // e.g. auth/invalid-api-key from getAuth — report as a config problem
       throw e instanceof FirebaseConfigError ? e : new FirebaseConfigError([], e);

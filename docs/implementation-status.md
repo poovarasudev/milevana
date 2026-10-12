@@ -52,7 +52,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | FND-OBS-04 | Done | `base.ts` write journals, `sync.ts` (`retryIssue`, `discardIssue`, `recomputePending`), `overlays.tsx` sync-issues sheet | `sync.test.ts` (issue create, retry resubmits journal, discard) | Journal lives in memory only — never persisted or logged (DR-19). |
 | FND-OBS-05 | Done | `src/features/reporting.ts`, adapter `reportNonFatal`/`testCrash` | `reporting.test.ts` (whitelist, redaction, never-throws), `errorBoundary.test.tsx` | No uid/vehicle/plate/invite data in reports; web hook is a no-op; test crash wired on the Account screen (dev builds). |
 | FND-VER-01 | Done | `docs/quota-budget.md` | Projection vs DR-20 threshold | PASS at 500 DAU (≈7.8k reads / ≈7.2k writes vs 25k/10k). Counts are code-path-derived and batching emulator-verified; emulator request-log metering is owner-side if tighter numbers are wanted. G2 satisfied → DAT-05/06/07 acceptable. |
-| FND-VER-02 | Partial | `.maestro/foundation-first-launch.yaml`, `.maestro/foundation-offline-lifecycle.yaml`, `docs/foundation-verification.md` | Component + unit + emulator suites | Flows and checklist are authored; they need a dev build + real device run (no Android toolchain in this env). Manual checklist run record left blank for the owner. |
+| FND-VER-02 | Partial | `.maestro/foundation-first-launch.yaml`, `.maestro/foundation-offline-lifecycle.yaml`, `docs/foundation-verification.md` | Component + unit + emulator suites | Web run 2026-10-10 (Auth+Firestore emulators, Chrome via CDP): rows 9, 10 (dark half), 15 passed; rows 2/3 partially. Device + two-account rows remain — per-row results recorded in the checklist. |
 
 ## Phase 2 — Logging (entries)
 
@@ -73,7 +73,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | LOG-12 | Done | `HistoryList.tsx` (`filterEntries`, `entryMatchesQuery`, type chips, date-from/to pickers) | `entries.test.ts` (domain), `entryForms.test.tsx` | In-memory only — zero additional reads. Search covers notes, category, service line labels/types, station, platform, trip from/to; amounts never match. |
 | LOG-13 | Done | `EntryForm.tsx` edit mode, `entryRepo.update` (patch + `lastOdometer` recompute), `canEditEntry` | `entryForms.test.tsx` (edit seeding), emulator edit/authority block | Type immutable on edit; date editable; creator or vehicle owner can edit; archived → read-only. |
 | LOG-14 | Done | `features/entries.ts` (5 s Undo window, background flush), `SwipeRow.tsx`, History snackbar, `entryRepo.delete` | `features/__tests__/entries.test.ts`, emulator delete + `lastOdometer` recompute block | Row hides immediately, server delete on timer expiry; app teardown commits pending deletes; owner can delete member entries. |
-| LOG-15 | Partial | `.maestro/logging-airplane-mode.yaml`, `docs/logging-verification.md`, stable `testID`s on all form fields | Flow authored; component + emulator suites | Android Maestro run needs a dev build + device (no Android toolchain here) — same caveat as FND-VER-02. Manual checklist rows left blank for the owner. |
+| LOG-15 | Partial | `.maestro/logging-airplane-mode.yaml`, `docs/logging-verification.md`, stable `testID`s on all form fields | Flow authored; component + emulator suites | Web run 2026-10-10: rows 3 (edit locks), 6 (offline banner + disabled saves), 13 (two-of-three + per-fill mileage), 11/15/17 partially. Airplane-mode, member and queued-write rows remain for device — per-row results in the checklist. |
 
 ## Phase 3 — Reminders
 
@@ -90,7 +90,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | REM-09 | Done | `setVehicleMuted`/`isVehicleMuted` in `features/reminders.ts`, `settings.mutedReminderVehicleIds` write, mute switch in `app/vehicle/[id].tsx`, rebuild on settings change in `session.ts` | Feature suite (write + schedule exclusion), component test (card unaffected) | Per-user setting on `users/{uid}`; every member sees the switch on the vehicle detail sheet; muted vehicles still render in-app. |
 | REM-10 | Done | `src/ui/UpcomingCard.tsx`, `app/(tabs)/index.tsx` dashboard | Component tests (≤3 rows, ordering, snooze exclusion, muted still shown, empty state + add shortcut, See all) | Card rows share the OQ-47 ordering; overdue stays until done/snoozed. |
 | REM-11 | Done | `opensExpenseForm`/`expenseCategoryFor` (domain), notification `action:'expense'` payload, `registerReminderNavigator` + `app/_layout.tsx` routing, `?vehicle/category/amountMinor` params in `app/entry/[type].tsx`, `prefill` in `EntryFormProps`/`MoneyForm`, "Log expense" row action | Feature test (scheduled data carries category+amountMinor, body shows neither), component test (Loan EMI + amount save as one entry) | 'Loan EMI' is a fixed expense category — prefill picks it directly. Taps select the reminder's vehicle first; nothing is logged without a save. |
-| REM-12 | Partial | `docs/reminders-verification.md` (14-row manual checklist) | Automated half covered by feature/component/emulator suites | Needs a dev build + real Android device(s) (no Android toolchain in this env). Checklist rows left blank for the owner — covers 9:00 delivery, reboot/tz rebuild, two-user mute, sign-out clear, denied permission, next-open propagation. |
+| REM-12 | Partial | `docs/reminders-verification.md` (14-row manual checklist) | Automated half covered by feature/component/emulator suites | Web run 2026-10-10: row 14 passed (list/create/edit on web, nothing scheduled, clean console). Rows 1–13 are notification/two-device/permission checks — device run still needed. |
 
 ## Phase 4 — Reports and dashboard
 
@@ -109,7 +109,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | RPT-11 | Done | `ReportSections.tsx` trips + lifetime stats rows | `reports.test.ts` (business/personal, reimbursement excluded from cost/profit) | Lifetime stats: all-time distance, cost, cost/distance, entry count, days tracked (per the design's lifetime block). |
 | RPT-12 | Done | `ReportsScreen.tsx` (All-vehicles scope, per-vehicle loading/failure lines, Include-archived), `ReportSections.tsx` currency blocks, `app/vehicle/[id].tsx` "View reports" action (visible on archived vehicles) | `reports.test.tsx` (INR+USD blocks, failure line, archived toggle/deep-link) | Totals grouped per currency, never converted (OQ-19); distance per odometer unit; archived excluded unless toggled on (default off). |
 | RPT-13 | Done | `src/ui/reports/DashboardCards.tsx`, `app/(tabs)/index.tsx` | `reports.test.tsx` (spend, vs-prev-month, cost/unit, 90-day, mileage vs bi-fuel cost/km, income-vs-cost, `hours`, empty) | Monthly spend + prev-month delta, cost/unit (month + 90-day), last mileage or all-time cost/km for petrol+CNG, income-vs-cost when income exists, recent entries; Notices/UpcomingCard/Add Entry preserved. |
-| RPT-14 | Partial | `docs/reports-verification.md` (13-row manual checklist), all automated suites above | 37 domain + reportData + 12 UI tests | Figures verified against hand-calculated fixtures in Jest; charts/emulator read-counts/offline/large-vehicle rows need a dev build + real Android device and a web smoke run (no Android toolchain in this env). Checklist left for the owner. |
+| RPT-14 | Partial | `docs/reports-verification.md` (13-row manual checklist), all automated suites above | 37 domain + reportData + 12 UI tests | Web run 2026-10-10: row 4 partially (charts + sections render, range switch works), row 1 partially. Offline/large-vehicle/multi-currency/Android-chart rows remain for device. |
 
 ## Phase 5 — Drive backup, restore, export and receipts
 
@@ -131,7 +131,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | DRV-14 | Done | `src/features/driveDeletes.ts` (pending-delete flag queue, ≤5 retries), hooks in `features/entries.ts` undo commit and `features/vehicleActions.ts` delete | `driveDeletes.test.ts`, `uploadQueue.test.ts` | Attachment removal deletes the Drive file; entry delete waits out the 5 s undo window; vehicle delete removes receipt files + folder before the Firestore subtree; failures queue for retry and never block. |
 | DRV-15 | Done | `src/domain/csv.ts` (BOM, English headers, per-type column groups, currency-aware decimals, RFC 4180 quoting, `milevana-export-*` name) | `csv.test.ts` | Date `YYYY-MM-DD HH:mm`; `yes`/`no`; service lines `name: amount; …`; columns present even when empty. |
 | DRV-16 | Done | `src/features/csvExport.ts` (scope/range/archived), `src/data/shareOut.*` (native share sheet + temp cleanup, web download), export card in `app/backup-export.tsx` | `backupExport.test.tsx`, `csv.test.ts` | Works for anonymous users and offline on Android (cache); web requires online. Archived excluded unless toggled; ranges mirror Reports incl. Custom. |
-| DRV-17 | Partial | `docs/drive-export-verification.md` (24-row manual checklist + run record) | Automated half: `npm test` (438 tests) + emulator/rules suites + `check:manifest` | Needs the owner's Google Cloud config and a real device — see Owner-only items. |
+| DRV-17 | Partial | `docs/drive-export-verification.md` (24-row manual checklist + run record) | Automated half: `npm test` (438 tests) + emulator/rules suites + `check:manifest` | Web run 2026-10-10: rows 19/20 (CSV export filename + contents) verified on web. Drive consent/backup/restore rows stay owner-only — see Owner-only items. |
 
 ## Phase 6 — Sharing
 
@@ -152,7 +152,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | SHR-13 | Done | `transferOwnership` (one write: `ownerId` + both roles), members-screen confirm dialog | `sharing.test.tsx`, `invites.test.ts`, `rules.sharing.test.js` | No acceptance step for the new owner (SD-10). |
 | SHR-14 | Done | `src/data/drive/api.ts` (`createPermission`/`deletePermission`/`listPermissions`), `src/features/receiptShare.ts` (`installReceiptShareSync` — native only, on open + foreground, ≤1/15min/vehicle, ≤200 receipts/run, skips no-email members, "share-write-gap" non-fatal), `entryRepo.listUploadedBy`, `shareSyncRunning` → Notices "Sharing receipts…" | `receiptShare.test.ts` (9 tests) | Permission grants/revokes use the member record's email; `sharedWithUids` written only when the runner is entry creator or vehicle owner. Gate: SHR-03 flag. |
 | SHR-15 | Done | `src/features/receipts.ts` (`memberReceiptState` → own/openable/pending/gone, `driveViewUrl`, `openInDrive`), `MemberRow` in `AttachmentsSection.tsx` | `sharing.test.tsx` (5 member-receipt tests), `attachments.test.tsx` | Per SD-09/SHR-01 assumption: other members' receipts never render in-app — "Open in Drive" when shared, "Shared once \<name\> opens the app" pending, "No longer available" when gone; no offline open. |
-| SHR-16 | Partial | `docs/sharing-verification.md` (5 spike rows + 18 manual rows + automated coverage) | All suites listed in Verification | Adversarial rules tests and repo/UI suites are green; the two-account and device rows need the owner's environment. |
+| SHR-16 | Partial | `docs/sharing-verification.md` (5 spike rows + 18 manual rows + automated coverage) | All suites listed in Verification | Web run 2026-10-10: row 4 partially (invite code + join link render on web). Two-account/device rows stay owner-only. |
 
 ## Phase 7 — Checklists
 
@@ -167,7 +167,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | CHK-07 | Done | `AttachmentDoc.itemId` (schema already), `PendingReceipt.itemId` in `receipts.ts`, tag picker + per-item thumbs in `AttachmentsSection.tsx`, tag wiring in `app/entry/[type].tsx` | `checklists.test.tsx` renders; schema in `schemas.test.ts` | One tag per photo, optional, editable; untagged land in the Photos row on the saved entry. |
 | CHK-08 | Done | Failed-item summary + `ShortcutRow` in `InspectionForm`; `?title` prefill in `app/reminder/[id].tsx` → `ReminderForm` (custom subject, no trigger); `?notes` prefill in `app/entry/[type].tsx` | `checklists.test.tsx` (shortcuts push the right routes/params) | Summary shows on the saved inspection whenever `failedItems` is non-empty. |
 | CHK-09 | Done | `src/ui/HistoryList.tsx` (inspection icon, `templateName` title, issue badge), `src/domain/entries.ts` search haystack += `templateName`, `dangerSoft` theme token | `checklists.test.tsx` (badge 0/1/2), `entries.test.ts` (templateName + notes match, item notes don't) | Issue badge uses the new `dangerSoft` token on both themes. |
-| CHK-10 | Partial | `docs/checklists-verification.md` — automated-coverage table + 9-row manual checklist + run record | `npm test` (552), `test:rules` (64), `test:emulator` (51), `guardrails`, `expo export --platform web` | Two-account, airplane-mode and Drive round-trip rows need the owner's devices/accounts. Rules: per-item validation stays repo-side — see rules note below. |
+| CHK-10 | Partial | `docs/checklists-verification.md` — automated-coverage table + 9-row manual checklist + run record | `npm test` (552), `test:rules` (64), `test:emulator` (51), `guardrails`, `expo export --platform web` | Web run 2026-10-10: row 9 partially (list + starter-template create on web). Two-account/airplane/Drive rows stay owner-only. Rules: per-item validation stays repo-side — see rules note below. |
 
 ## Phase 8 — Release
 
@@ -187,7 +187,7 @@ The local Zustand data store (`src/data/store.ts`) is removed; repositories are 
 | REL-12 | Done | `SignInGate` in `src/ui/gates.tsx` — name, tagline, v1 feature list (10 items), Google sign-in, privacy/terms links, Play badge placeholder, 3 screenshot placeholders; signed-in visitors reach the app via the phase machine | `src/ui/__tests__/landing.test.tsx` (3 tests) | VD-11 provisional content in `src/i18n/en.ts` `landing.*`; final copy/screenshots are owner-supplied before production. |
 | REL-13 | Partial | `scripts/gen-interim-icon.mjs` (deterministic PNG generator) → `assets/images/{icon,android-icon-foreground,android-icon-background,android-icon-monochrome,favicon}.png`, wired in `app.json` (icon, adaptive icon, splash, favicon) | — (visual assets; adaptive background colour `#4C7BD9` matches the generated tile) | Interim mark per VD-12. Owner supplies final artwork before production; re-run the generator or replace the PNGs directly. |
 | REL-14 | Blocked-owner | `docs/play-listing-checklist.md` §REL-14 — category/audience, screenshots + feature graphic, full data-safety form, OQ-63 declarations, deletion-route declarations; PRD-drafted short/full descriptions included | — | Every box is a Play Console action; nothing here can run without the owner's account and the feature-complete build. |
-| REL-15 | Partial | `docs/release-verification.md` — feature-completeness review, Maestro + manual checklist, live-route checks, permission/SDK hygiene, account-deletion E2E, weekly Firestore usage-check procedure, promotion steps; `docs/release-runs/TEMPLATE.md` | `scripts/check-release-gate.test.js` (gate), `guardrails` (build hygiene) | Procedure and run records are written; executing them needs devices, accounts and production access — owner runs them per tag. |
+| REL-15 | Partial | `docs/release-verification.md` — feature-completeness review, Maestro + manual checklist, live-route checks, permission/SDK hygiene, account-deletion E2E, weekly Firestore usage-check procedure, promotion steps; `docs/release-runs/TEMPLATE.md` | `scripts/check-release-gate.test.js` (gate), `guardrails` (build hygiene) | Web run 2026-10-10: rows 5 (dark), 7, 10, 12 partially/fully verified on web; deletion-summary UI renders. Device/account rows stay owner-only — owner runs them per tag. |
 
 ## Owner-only items
 
@@ -277,3 +277,90 @@ A browser smoke run of the web build found three defects that the Jest suites co
 - **Platform self-import.** `notifications.web.ts` / `.native.ts`, `receiptPick.*` and `drive/client.*` imported values from their neutral sibling (`./notifications`, `./receiptPick`, `./client`), which Metro resolves back to the platform file itself. The web app crashed on load (`setNotificationsFactory is not a function`) and `DRIVE_SCOPE`/`DriveError`/`ReceiptPickError` would have been undefined. The shared contracts now live in `notificationsCore.ts`, `receiptPickCore.ts` and `drive/clientCore.ts`, and `scripts/check-boundaries.mjs` fails on any platform file that imports a value from its own neutral sibling.
 - **Missing peer dependency.** `react-native-gifted-charts` needs `expo-linear-gradient`; Reports crashed on load. Installed.
 - The smoke run covered only the signed-out web landing page (Google sign-in cannot be automated). Signed-in screens on web and everything on Android are still unverified in a browser or on a device.
+
+## Phase 9 — Web verification run (2026-10-10)
+
+Android build/device automation was stopped at the owner's direction
+("test it in web, I will manually test in mobile using expo app"). The
+native emulator wiring added for the device run is kept (see below) and
+the device checklist rows stay open for the owner's manual run.
+
+**Native emulator support (added, for the owner's device run)**
+
+- `src/data/firebase.native.ts`: `EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST` /
+  `EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST` connect `connectFirestoreEmulator`
+  / `connectAuthEmulator` under `__DEV__` only; `localhost`/`127.0.0.1` map
+  to `10.0.2.2` on the Android emulator.
+- `src/data/firebase.web.ts`: Auth-emulator connect added alongside the
+  existing Firestore-emulator connect.
+- `firebase/firebase.json`: `emulators.auth` entry (port 9099).
+- `.env` / `.env.example`: emulator host vars documented.
+
+**Repeatable web run commands**
+
+```sh
+# emulators (from firebase/)
+firebase emulators:start --only auth,firestore --project demo-milevana
+# dev server (separate terminal)
+npx expo start --web        # serves http://localhost:8081
+# CDP driver (no extra packages; needs Chrome)
+node scripts/webcdp.mjs launch           # headless Chrome on :9333
+node scripts/webcdp.mjs nav http://localhost:8081
+node scripts/webcdp.mjs eval "<js>"      # inspect/drive the page
+node scripts/webcdp.mjs click "<text>"   # click by visible text
+node scripts/webcdp.mjs type "<text>"    # type into focused input
+node scripts/webcdp.mjs shot <name>      # screenshot → docs/device-runs/2026-10-10/
+node scripts/webcdp.mjs console          # captured console log
+node scripts/webcdp.mjs offline on|off   # network offline simulation
+```
+
+Sign-in on web uses the Auth emulator's hosted "Sign in with Google"
+page — any name/email works; no real Google account or password.
+
+**Verified on web this run** — sign-in, vehicle create/edit (incl. field
+locking once entries exist), fuel (two-of-three derivation, per-fill
+mileage), expense create/edit/delete, dashboard/history/reports figures,
+offline banner + disabled saves, reminders create/list, checklist starter
+template, CSV export (filename + contents), dark theme, invite code +
+join link, `/delete-account` summary, `/` signed-in/signed-out. Per-row
+results recorded in each `docs/*-verification.md`.
+
+**Defects found on web and fixed**
+
+1. Explicit `undefined` optional fields (e.g. `make: undefined` from Zod
+   defaults) reached `setDoc` and threw a client-side error — vehicle
+   create appeared to fail. `encodeWriteData` now strips `undefined`
+   recursively (preserving null/false/0, timestamps, sentinels, array
+   union) in a shared `src/data/encodeWrite.ts` used by both adapters;
+   covered by `src/data/__tests__/encodeWriteData.test.ts` + emulator test.
+2. Cold deep-link to `/entry/*`, `/checklist/*`, `/inspection/pick`
+   crashed with "getSnapshot should be cached" → "Maximum update depth"
+   — Zustand selectors returned fresh `[]` fallbacks (raw
+   `useSyncExternalStore`, no memoization). Added shared `EMPTY_LIST` in
+   `appStore.ts`; regression test `app/__tests__/entryScreen.test.tsx`.
+3. `router.back()` after save/delete on a deep-linked/refreshed page had
+   no back target and left the user on the form. `backOrHome()` in
+   `src/ui/kit.tsx` falls back to `/`; regression test
+   `src/ui/__tests__/kit.test.ts`.
+4. Transient `permission-denied` on the entries/templates/reminders
+   watches right after vehicle create (doc not yet visible to the rules
+   engine) killed the watches permanently — dashboard stuck on
+   "Something went wrong" + "Loading entries…". Watches now re-attach
+   through `src/features/watchRetry.ts` with bounded retries; covered in
+   `entries.test.ts` (transient + persistent-denial paths).
+5. `handleAuthChange` tore the session down *before* the duplicate-event
+   early return, so a same-user auth event killed all watches and
+   `refreshSession()` (the Retry action) could not re-enter — Retry
+   cleared the banner but watches stayed dead. Dedupe now runs before
+   teardown; `refreshSession` force re-enters; covered in
+   `session.test.ts`.
+
+**Screenshots** — `docs/device-runs/2026-10-10/` (`16-state.png`,
+`17-settings.png`, `18-entry-deeplink.png`, `19-entry-deeplink-fixed.png`,
+`20-dark-theme.png`).
+
+**Still open** — every device-only row across the eight checklists
+(airplane mode, notifications, permissions, back-button, small-screen
+layout, Android charts), two-account rows, real-Google/Drive rows, and
+production-Hosting rows stay Partial/owner-only for the owner's manual
+Expo run.

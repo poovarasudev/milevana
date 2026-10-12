@@ -107,7 +107,15 @@ export class FakeAdapter implements FirebaseAdapter {
     return () => this.docListeners.get(path)?.delete(next);
   }
 
-  onQuery(q: QuerySpec, next: (s: QuerySnap) => void): Unsubscribe {
+  /** Test hook: the next N onQuery attaches fail with these errors. */
+  failQueries: RepoError[] = [];
+
+  onQuery(q: QuerySpec, next: (s: QuerySnap) => void, onError?: (e: RepoError) => void): Unsubscribe {
+    const err = this.failQueries.shift();
+    if (err) {
+      onError?.(err);
+      return () => undefined;
+    }
     if (!this.queryListeners.has(q)) this.queryListeners.set(q, new Set());
     this.queryListeners.get(q)!.add(next);
     next(this.querySnap(q));

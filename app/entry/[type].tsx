@@ -3,12 +3,12 @@
 // members' entries and archived vehicles — LD-13/DR-13). An inspection run
 // arrives with `?template=<id>` from the picker (CHK-06).
 
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { ENTRY_TYPES, type Timestamp } from '../../src/data/schema/common';
 import type { InspectionDetailsDoc } from '../../src/data/schema/entry';
-import { useAppStore } from '../../src/features/appStore';
+import { EMPTY_LIST, useAppStore } from '../../src/features/appStore';
 import { isDriveGranted, requestDriveAccess } from '../../src/features/driveAccess';
 import { cleanupOneAttachment } from '../../src/features/driveCleanup';
 import { canEditEntry, createEntry, requestDelete, updateEntry } from '../../src/features/entries';
@@ -21,7 +21,7 @@ import { t } from '../../src/i18n';
 import { AttachmentsSection } from '../../src/ui/entry/AttachmentsSection';
 import { EntryForm } from '../../src/ui/entry/EntryForm';
 import type { EntryFormResult } from '../../src/ui/entry/types';
-import { Header, T } from '../../src/ui/kit';
+import { backOrHome, Header, T } from '../../src/ui/kit';
 import { useTheme } from '../../src/ui/theme';
 
 export default function EntryScreen() {
@@ -36,7 +36,7 @@ export default function EntryScreen() {
   // vehicle (RD-10); otherwise the selected vehicle applies.
   const vehicle = useAppStore((s) =>
     s.vehicles.find((v) => v.id === (vid ?? s.selectedVehicleId)));
-  const entries = useAppStore((s) => (vehicle && s.entriesVehicleId === vehicle.id ? s.entries : []));
+  const entries = useAppStore((s) => (vehicle && s.entriesVehicleId === vehicle.id ? s.entries : EMPTY_LIST));
   const arrived = useAppStore((s) => s.entriesArrived);
   const entry = id ? entries.find((e) => e.id === id) : undefined;
   const [saving, setSaving] = useState(false);
@@ -146,7 +146,7 @@ export default function EntryScreen() {
       if (entryId) {
         await enqueuePendingReceipts(uid, vehicle.id, entryId, dateTs, entryType, ready);
       }
-      router.back();
+      backOrHome();
     } catch {
       setError(t('vehicleForm.saveFailed'));
       setSaving(false);
@@ -209,7 +209,7 @@ export default function EntryScreen() {
             />
           ) : undefined}
           onSubmit={(v) => void submit(v)}
-          onDelete={entry ? () => { requestDelete(vehicle.id, entry); router.back(); } : undefined}
+          onDelete={entry ? () => { requestDelete(vehicle.id, entry); backOrHome(); } : undefined}
         />
       )}
     </View>

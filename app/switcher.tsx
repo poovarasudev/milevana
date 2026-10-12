@@ -10,7 +10,7 @@ import { displayOdometer, useSettings } from '../src/features/format';
 import { VEHICLE_ICON } from '../src/features/icons';
 import { selectAllVehicles, selectVehicle } from '../src/features/session';
 import { t } from '../src/i18n';
-import { Button, Icon, Row, T } from '../src/ui/kit';
+import { backOrHome, Button, Icon, Row, T } from '../src/ui/kit';
 import { paletteColor } from '../src/ui/palette';
 import { useTheme, dark } from '../src/ui/theme';
 
@@ -25,7 +25,7 @@ export default function Switcher() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,24,40,0.45)' }}>
-      <Pressable style={{ flex: 1 }} onPress={() => router.back()} accessibilityLabel={t('common.close')} />
+      <Pressable style={{ flex: 1 }} onPress={backOrHome} accessibilityLabel={t('common.close')} />
       <View style={{ backgroundColor: th.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 32 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <T size={20} weight="semi">{t('nav.yourVehicles')}</T>
@@ -43,7 +43,7 @@ export default function Switcher() {
               sub={`${t(`vehicleTypes.${v.type}`)} · ${displayOdometer(v, settings)}`}
               tint={p.color}
               soft={p.soft}
-              onPress={() => { void selectVehicle(v.id); router.back(); }}
+              onPress={() => { void selectVehicle(v.id); backOrHome(); }}
               right={
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   {v.memberIds.length > 1 ? (
@@ -65,7 +65,7 @@ export default function Switcher() {
             sub={t('nav.allVehiclesHint')}
             tint={th.muted}
             soft={th.tile}
-            onPress={() => { selectAllVehicles(); router.back(); }}
+            onPress={() => { selectAllVehicles(); backOrHome(); }}
             right={reportsAll ? <Icon name="check-circle" color={th.primary} /> : undefined}
           />
         )}

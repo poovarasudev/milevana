@@ -12,6 +12,7 @@ import { cleanupEntryAttachments } from './driveCleanup';
 import { onEntriesSnapshot } from './reminders';
 import { reportNonFatal } from './reporting';
 import { getRepos } from './runtime';
+import { watchWithRetry } from './watchRetry';
 
 export const DELETE_UNDO_MS = 5_000;
 
@@ -24,22 +25,23 @@ export const DELETE_UNDO_MS = 5_000;
  */
 export function startEntriesWatch(vehicleId: string): Unsubscribe {
   useAppStore.setState({ entriesVehicleId: vehicleId, entriesArrived: false, entries: [] });
-  return getRepos().entries.watch(
-    vehicleId,
-    (entries) => {
-      const st = useAppStore.getState();
-      if (st.entriesVehicleId !== vehicleId) return;
-      useAppStore.setState({ entries, entriesArrived: true });
-      // REM-03/06: an entry snapshot can complete reminders and changes the
-      // prediction inputs, so the notification schedule rebuilds.
-      onEntriesSnapshot(vehicleId);
-    },
-    undefined,
-    {
-      onError: (e) => {
-        reportNonFatal(e, { stage: 'watch-entries' });
-        useAppStore.setState({ ownerError: true });
+  return watchWithRetry(
+    (onError) => getRepos().entries.watch(
+      vehicleId,
+      (entries) => {
+        const st = useAppStore.getState();
+        if (st.entriesVehicleId !== vehicleId) return;
+        useAppStore.setState({ entries, entriesArrived: true });
+        // REM-03/06: an entry snapshot can complete reminders and changes the
+        // prediction inputs, so the notification schedule rebuilds.
+        onEntriesSnapshot(vehicleId);
       },
+      undefined,
+      { onError },
+    ),
+    (e) => {
+      reportNonFatal(e, { stage: 'watch-entries' });
+      useAppStore.setState({ ownerError: true });
     },
   );
 }

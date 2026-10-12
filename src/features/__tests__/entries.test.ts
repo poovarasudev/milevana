@@ -2,6 +2,7 @@
 // and the 5-second delete-with-Undo window (LD-12).
 
 import { AppState } from 'react-native';
+import { RepoError } from '../../data/adapter';
 import { resetFirebaseForTests, setFirebaseFactory } from '../../data/firebase';
 import { resetAppStore, useAppStore } from '../appStore';
 import { resetRuntimeForTests } from '../runtime';
@@ -76,6 +77,33 @@ describe('startEntriesWatch (LOG-11)', () => {
     stop();
     // the fake keeps the listener Set; it must be empty after unsubscribing
     expect([...adapter.queryListeners.values()].every((s) => s.size === 0)).toBe(true);
+  });
+
+  // Found during emulator verification: the first attach right after a
+  // vehicle is created gets a one-shot permission-denied while the doc lags
+  // its create ack in the rules engine. The watch must re-attach, not die.
+  test('re-attaches after a transient permission-denied (vehicle-create race)', async () => {
+    jest.useFakeTimers();
+    adapter.failQueries = [new RepoError('permission-denied')];
+    const stop = startEntriesWatch('v1');
+    stops.push(stop);
+    expect(useAppStore.getState().ownerError).toBe(false);
+    await jest.advanceTimersByTimeAsync(1600);
+    const st = useAppStore.getState();
+    expect(st.ownerError).toBe(false);
+    expect(st.entriesArrived).toBe(true);
+    expect(st.entries.map((e) => e.id).sort()).toEqual(['e-mine', 'e-other']);
+  });
+
+  test('a persistent denial surfaces ownerError after the retries run out', async () => {
+    jest.useFakeTimers();
+    adapter.failQueries = [0, 1, 2, 3].map(() => new RepoError('permission-denied'));
+    const stop = startEntriesWatch('v1');
+    stops.push(stop);
+    await jest.advanceTimersByTimeAsync(20_000);
+    const st = useAppStore.getState();
+    expect(st.ownerError).toBe(true);
+    expect(st.entriesArrived).toBe(false);
   });
 });
 

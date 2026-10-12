@@ -18,24 +18,26 @@ import { useAppStore } from './appStore';
 import { reportNonFatal } from './reporting';
 import { getRepos } from './runtime';
 import { guardedWrite } from './vehicleActions';
+import { watchWithRetry } from './watchRetry';
 
 // --- watch (CHK-02) ------------------------------------------------------------
 
 /** Mirror the selected vehicle's templates into the read model. */
 export function startTemplatesWatch(vehicleId: string): Unsubscribe {
   useAppStore.setState({ templatesVehicleId: vehicleId, templatesArrived: false, templates: [] });
-  return getRepos().templates.watch(
-    vehicleId,
-    (templates) => {
-      const st = useAppStore.getState();
-      if (st.templatesVehicleId !== vehicleId) return;
-      useAppStore.setState({ templates, templatesArrived: true });
-    },
-    {
-      onError: (e) => {
-        reportNonFatal(e, { stage: 'watch-templates' });
-        useAppStore.setState({ ownerError: true });
+  return watchWithRetry(
+    (onError) => getRepos().templates.watch(
+      vehicleId,
+      (templates) => {
+        const st = useAppStore.getState();
+        if (st.templatesVehicleId !== vehicleId) return;
+        useAppStore.setState({ templates, templatesArrived: true });
       },
+      { onError },
+    ),
+    (e) => {
+      reportNonFatal(e, { stage: 'watch-templates' });
+      useAppStore.setState({ ownerError: true });
     },
   );
 }

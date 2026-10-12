@@ -60,5 +60,11 @@ export function missingFirebaseEnvVars(config: typeof firebaseConfig = firebaseC
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 
 // Optional: point the JS SDK at the local Firestore emulator (set in .env for
-// local runs only, never in production builds).
+// local runs only, never in production builds). On the Android emulator the
+// host machine is 10.0.2.2.
 export const FIRESTORE_EMULATOR_HOST = process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST ?? '';
+
+// Optional: the Firebase Auth emulator for local dev-build runs (anonymous
+// sign-in works; Google sign-in still needs real OAuth config). Same
+// host:port format as FIRESTORE_EMULATOR_HOST.
+export const AUTH_EMULATOR_HOST = process.env.EXPO_PUBLIC_AUTH_EMULATOR_HOST ?? '';

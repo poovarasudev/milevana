@@ -7,7 +7,7 @@ import { useAppStore } from '../src/features/appStore';
 import { displayOdometer, useSettings } from '../src/features/format';
 import { ENTRY_ICON, ENTRY_TYPES } from '../src/features/icons';
 import { t } from '../src/i18n';
-import { Icon, T } from '../src/ui/kit';
+import { backOrHome, Icon, T } from '../src/ui/kit';
 import { useTheme } from '../src/ui/theme';
 
 export default function AddSheet() {
@@ -17,7 +17,7 @@ export default function AddSheet() {
   if (!v) {
     return (
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,24,40,0.45)' }}>
-        <Pressable style={{ flex: 1 }} onPress={() => router.back()} accessibilityLabel={t('common.close')} />
+        <Pressable style={{ flex: 1 }} onPress={backOrHome} accessibilityLabel={t('common.close')} />
         <View style={{ backgroundColor: th.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 32 }}>
           <T size={17} weight="semi">{t('addSheet.chooseVehicle')}</T>
         </View>
@@ -26,7 +26,7 @@ export default function AddSheet() {
   }
   return (
     <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,24,40,0.45)' }}>
-      <Pressable style={{ flex: 1 }} onPress={() => router.back()} accessibilityLabel={t('common.close')} />
+      <Pressable style={{ flex: 1 }} onPress={backOrHome} accessibilityLabel={t('common.close')} />
       <View style={{ backgroundColor: th.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 32 }}>
         <T size={20} weight="semi">{t('addSheet.title', { name: v.name })}</T>
         <T size={13} color={th.muted} style={{ marginBottom: 16 }}>

@@ -43,15 +43,15 @@ update, creator-or-owner delete, ≤50 items).
 
 | # | Check | Covers | Result |
 |---|-------|--------|--------|
-| 1 | Save an inspection from a template → edit the template (rename, remove an item) → the saved inspection still shows the original snapshot → delete the template → inspection still renders unchanged | SC-CHK10-01 | ☐ |
-| 2 | Vehicle at 20 templates → New checklist shows the limit message; 51st item in the editor is refused; Copy to a vehicle that already has 20 shows 'That vehicle already has 20 checklists.' | SC-CHK10-02 | ☐ |
-| 3 | Second member's device: can create, edit and run templates but cannot delete the creator's template ("Only the creator or the owner can delete"); owner's device can delete | SC-CHK10-03 | ☐ |
-| 4 | Anonymous account with templates → Google sign-in "Move and switch" → templates appear under the linked account; backup to Drive → delete app data → restore → templates back; delete a vehicle → its templates are gone (server, not just the UI) | SC-CHK10-04 | ☐ |
-| 5 | Inspection with photos tagged to items → uploads reach Drive → open the entry on a second device (or after cache clear) → photos come back and each renders under its tagged item; untagged photos show in the Photos row | SC-CHK10-05 | ☐ |
-| 6 | Airplane mode: run an inspection start to finish → saves with the sync icon; reconnect → server holds the entry with the full snapshot | SC-CHK06-05 | ☐ |
-| 7 | Archived vehicle → Checklists shows the read-only banner; no add/run/copy affordances; picking Inspection in Add shows the archived notice | SC-CHK02-03, SC-CHK06-05 | ☐ |
-| 8 | Leave a started run mid-way (back/gesture) → discard confirmation appears; Discard leaves, Keep running stays | SC-CHK06-04 | ☐ |
-| 9 | Web build: Checklists list, template editor, inspection run and History badge all work online; offline web banner blocks saves per the existing web behaviour | CHK-02/06/09 web rows | ☐ |
+| 1 | Save an inspection from a template → edit the template (rename, remove an item) → the saved inspection still shows the original snapshot → delete the template → inspection still renders unchanged | SC-CHK10-01 | Not run |
+| 2 | Vehicle at 20 templates → New checklist shows the limit message; 51st item in the editor is refused; Copy to a vehicle that already has 20 shows 'That vehicle already has 20 checklists.' | SC-CHK10-02 | Not run |
+| 3 | Second member's device: can create, edit and run templates but cannot delete the creator's template ("Only the creator or the owner can delete"); owner's device can delete | SC-CHK10-03 | Not run — owner-only |
+| 4 | Anonymous account with templates → Google sign-in "Move and switch" → templates appear under the linked account; backup to Drive → delete app data → restore → templates back; delete a vehicle → its templates are gone (server, not just the UI) | SC-CHK10-04 | Not run — owner-only |
+| 5 | Inspection with photos tagged to items → uploads reach Drive → open the entry on a second device (or after cache clear) → photos come back and each renders under its tagged item; untagged photos show in the Photos row | SC-CHK10-05 | Not run — device |
+| 6 | Airplane mode: run an inspection start to finish → saves with the sync icon; reconnect → server holds the entry with the full snapshot | SC-CHK06-05 | Not run — device |
+| 7 | Archived vehicle → Checklists shows the read-only banner; no add/run/copy affordances; picking Inspection in Add shows the archived notice | SC-CHK02-03, SC-CHK06-05 | Not run |
+| 8 | Leave a started run mid-way (back/gesture) → discard confirmation appears; Discard leaves, Keep running stays | SC-CHK06-04 | Not run |
+| 9 | Web build: Checklists list, template editor, inspection run and History badge all work online; offline web banner blocks saves per the existing web behaviour | CHK-02/06/09 web rows | Partial (web) — list + starter template create verified on web; editor/run/badge not fully exercised |
 
 **Notes**
 
@@ -65,4 +65,4 @@ update, creator-or-owner delete, ≤50 items).
 
 | Date | Build | Runner | Result | Notes |
 |------|-------|--------|--------|-------|
-|      |       |        |        |       |
+| 2026-10-10 | web dev (expo start --web, Metro :8081) | Devin — Chrome CDP via scripts/webcdp.mjs, Auth+Firestore emulators | See per-row results | Web-only pass per user direction; device rows remain for manual Expo run. Screenshots in docs/device-runs/2026-10-10/ |

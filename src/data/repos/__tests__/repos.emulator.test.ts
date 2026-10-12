@@ -73,6 +73,16 @@ describe('userRepo', () => {
 });
 
 describe('vehicleRepo', () => {
+  it('create strips absent optional fields (key: undefined must not reach Firestore)', async () => {
+    // toVehicleInput emits `make: undefined` for blank fields — the write must
+    // succeed and the stored doc must not carry the key.
+    const r = reposFor('alice');
+    const id = await r.vehicles.create({ ...VEHICLE_INPUT, make: undefined });
+    const raw = await env.authenticatedContext('alice').firestore()
+      .doc(`vehicles/${id}`).get();
+    expect('make' in raw.data()!).toBe(false);
+  });
+
   it('create sets owner invariants and odometer from start', async () => {
     const r = reposFor('alice');
     const id = await r.vehicles.create(VEHICLE_INPUT);

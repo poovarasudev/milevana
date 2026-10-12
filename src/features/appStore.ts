@@ -201,6 +201,13 @@ export const useAppStore = create<AppState>((set) => ({
   set: (patch) => set(patch),
 }));
 
+/**
+ * Stable empty list for `useAppStore` selector fallbacks. The store uses raw
+ * `useSyncExternalStore` (no selector memoization), so a selector that
+ * returns a fresh `[]` loops forever — always fall back to this constant.
+ */
+export const EMPTY_LIST: never[] = [];
+
 /** Reset the whole store — used by tests and full sign-out. */
 export function resetAppStore(): void {
   useAppStore.setState({ ...initial });

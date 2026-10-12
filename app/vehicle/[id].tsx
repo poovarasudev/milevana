@@ -18,7 +18,7 @@ import {
 import { t } from '../../src/i18n';
 import { DialogFrame } from '../../src/ui/DialogFrame';
 import { ErrorBoundary } from '../../src/ui/ErrorBoundary';
-import { Button, Card, Header, Icon, T } from '../../src/ui/kit';
+import { backOrHome, Button, Card, Header, Icon, T } from '../../src/ui/kit';
 import { ToggleRow } from '../../src/ui/entry/fields';
 import { KEYBOARD_BEHAVIOR } from '../../src/ui/platform';
 import { useTheme, font } from '../../src/ui/theme';
@@ -124,7 +124,7 @@ function VehicleDetailScreen() {
           startOdometer: input.startOdometer,
         });
       }
-      router.back();
+      backOrHome();
     } catch (e) {
       if (e instanceof RepoError && e.message === 'name-taken') setError(t('vehicleForm.nameTaken'));
       else {
@@ -142,7 +142,7 @@ function VehicleDetailScreen() {
     try {
       await deleteVehicle(vehicle.id);
       setConfirmDelete(false);
-      router.back();
+      backOrHome();
     } catch {
       setDeleteError(true);
     } finally {

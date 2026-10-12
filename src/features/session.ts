@@ -160,12 +160,20 @@ export function pauseSession(): void {
 
 /** Re-enter after a failed sign-out (session state was paused). */
 export function refreshSession(): void {
-  void handleAuthChange(adapter().currentUser());
+  void handleAuthChange(adapter().currentUser(), /* forceReenter */ true);
 }
 
 // --- bootstrap -------------------------------------------------------------
 
-async function handleAuthChange(user: AuthUser | null): Promise<void> {
+async function handleAuthChange(user: AuthUser | null, forceReenter = false): Promise<void> {
+  // A duplicate event for the session that is already running (a token
+  // refresh firing the auth listener again, or a second callback with the
+  // same user) must not tear anything down — checked before teardown so the
+  // live watches survive it.
+  const pre = useAppStore.getState();
+  if (!forceReenter && user
+    && pre.user?.uid === user.uid
+    && (pre.phase === 'ready' || pre.phase === 'merge-resume' || pre.phase === 'deleting')) return;
   const token = ++sessionToken;
   teardownSession();
   const st = useAppStore.getState();
@@ -217,9 +225,6 @@ async function handleAuthChange(user: AuthUser | null): Promise<void> {
     else useAppStore.setState({ phase: 'signin' });
     return;
   }
-  // Ignore duplicate events for the session that is already running.
-  if (st.user?.uid === user.uid
-    && (st.phase === 'ready' || st.phase === 'merge-resume' || st.phase === 'deleting')) return;
   await enterSession(token, user);
 }
 

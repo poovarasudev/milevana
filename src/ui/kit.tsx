@@ -17,6 +17,16 @@ export function useIsWideWeb(): boolean {
   return Platform.OS === 'web' && width >= 768;
 }
 
+/**
+ * Go back when there is a back target; otherwise land on the dashboard.
+ * `router.back()` is a no-op on deep-linked/refreshed web pages, which left
+ * users stuck on forms after a save.
+ */
+export function backOrHome(): void {
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
+}
+
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color?: string }) {
   const th = useTheme();
   return <MaterialCommunityIcons name={name} size={size} color={color ?? th.text} />;
@@ -70,7 +80,7 @@ export function Header({ title, subtitle, back = true, right }: { title: string;
         <IconButton
           icon="arrow-left"
           accessibilityLabel={t('common.back')}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          onPress={backOrHome}
         />
       )}
       <View style={{ flex: 1 }}>
